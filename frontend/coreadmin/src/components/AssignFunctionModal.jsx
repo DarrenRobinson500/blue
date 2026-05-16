@@ -18,6 +18,7 @@ export default function AssignFunctionModal({ user, onClose, onAssigned }) {
     })
   }, [])
 
+  const isVacant = selectedFnId === 'vacant'
   const selectedFn = functions.find(f => f.id === Number(selectedFnId))
 
   const submit = async (e) => {
@@ -26,10 +27,14 @@ export default function AssignFunctionModal({ user, onClose, onAssigned }) {
     setSaving(true)
     setError('')
     try {
-      const res = await apiFetch(`/api/core/users/${user.id}/assign-function/`, {
-        method: 'POST',
-        body: JSON.stringify({ function_id: Number(selectedFnId), start_date: startDate, notes }),
-      })
+      if (isVacant && !user.function) { onAssigned(user); return }
+      const path = isVacant
+        ? `/api/core/users/${user.id}/remove-function/`
+        : `/api/core/users/${user.id}/assign-function/`
+      const body = isVacant
+        ? JSON.stringify({ notes })
+        : JSON.stringify({ function_id: Number(selectedFnId), start_date: startDate, notes })
+      const res = await apiFetch(path, { method: 'POST', body })
       const data = await res.json()
       if (res.ok) {
         onAssigned(data)
@@ -59,6 +64,11 @@ export default function AssignFunctionModal({ user, onClose, onAssigned }) {
               <strong>{selectedFn.name}</strong> from {startDate}.
             </div>
           )}
+          {isVacant && user.function && (
+            <div className="bg-amber-50 border border-amber-100 rounded px-3 py-2 text-xs text-amber-700">
+              This will end the assignment as <strong>{user.function.name}</strong>. The user will have no function.
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-primary mb-1">Function <span className="text-red-500">*</span></label>
@@ -68,11 +78,13 @@ export default function AssignFunctionModal({ user, onClose, onAssigned }) {
               className="w-full border border-border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-600 bg-white"
             >
               <option value="">Select a function…</option>
+              <option value="vacant">— Vacant (no function)</option>
               {functions.map(f => (
                 <option key={f.id} value={f.id}>{f.name}</option>
               ))}
             </select>
           </div>
+          {!isVacant && (
           <div>
             <label className="block text-sm font-medium text-primary mb-1">Effective date</label>
             <input
@@ -82,6 +94,7 @@ export default function AssignFunctionModal({ user, onClose, onAssigned }) {
               className="w-full border border-border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-600"
             />
           </div>
+          )}
           <div>
             <label className="block text-sm font-medium text-primary mb-1">Notes</label>
             <textarea
@@ -95,7 +108,7 @@ export default function AssignFunctionModal({ user, onClose, onAssigned }) {
           <div className="flex justify-end gap-2 pt-2">
             <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-muted hover:text-primary border border-border rounded">Cancel</button>
             <button type="submit" disabled={saving} className="px-4 py-2 text-sm bg-stone-700 text-white rounded hover:bg-stone-800 disabled:opacity-50 transition-colors">
-              {saving ? 'Assigning…' : isReassign ? 'Reassign' : 'Assign'}
+              {saving ? 'Saving…' : isVacant ? 'Make vacant' : isReassign ? 'Reassign' : 'Assign'}
             </button>
           </div>
         </form>

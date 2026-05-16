@@ -99,6 +99,25 @@ export default function FunctionDetailPanel({ functionId, onClose, onFunctionUpd
                 ? <p className="text-sm text-primary leading-relaxed">{detail.description}</p>
                 : <p className="text-sm text-muted italic">No description.</p>
               }
+              {detail.parent && (
+                <p className="text-xs text-muted mt-3">
+                  Reports to:{' '}
+                  <span className="font-medium text-primary">{detail.parent.name}</span>
+                  <span className="ml-1 font-mono text-[10px] bg-stone-100 text-stone-600 px-1 py-0.5 rounded">{detail.parent.code}</span>
+                </p>
+              )}
+              {detail.children?.length > 0 && (
+                <div className="mt-3">
+                  <p className="text-xs text-muted mb-1">Direct reports:</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {detail.children.map(c => (
+                      <span key={c.id} className="text-xs bg-stone-50 border border-stone-200 text-stone-700 px-2 py-0.5 rounded">
+                        {c.name} <span className="font-mono text-[10px] text-stone-500">{c.code}</span>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
               <p className="text-xs text-muted mt-3">Created {fmt(detail.created_at)}</p>
             </div>
 

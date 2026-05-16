@@ -13,6 +13,9 @@ export default function FunctionCard({ fn, onClick }) {
           {fn.code}
         </span>
       </div>
+      {fn.parent && (
+        <p className="text-xs text-muted mb-1">Reports to: <span className="text-primary">{fn.parent.name}</span></p>
+      )}
       {fn.description && (
         <p className="text-xs text-muted mb-3 line-clamp-2 leading-relaxed">{fn.description}</p>
       )}

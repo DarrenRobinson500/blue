@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { apiFetch } from '../api'
 
 const CODE_RE = /^[A-Z][A-Z0-9_]*$/
@@ -7,8 +7,14 @@ export default function NewFunctionModal({ onClose, onCreated }) {
   const [name, setName] = useState('')
   const [code, setCode] = useState('')
   const [description, setDescription] = useState('')
+  const [parentId, setParentId] = useState('')
+  const [functions, setFunctions] = useState([])
   const [errors, setErrors] = useState({})
   const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    apiFetch('/api/core/functions/?is_active=all').then(r => r?.json()).then(d => { if (d) setFunctions(d) })
+  }, [])
 
   const validate = () => {
     const e = {}
@@ -26,7 +32,10 @@ export default function NewFunctionModal({ onClose, onCreated }) {
     try {
       const res = await apiFetch('/api/core/functions/', {
         method: 'POST',
-        body: JSON.stringify({ name: name.trim(), code, description: description.trim() }),
+        body: JSON.stringify({
+          name: name.trim(), code, description: description.trim(),
+          parent_id: parentId ? Number(parentId) : null,
+        }),
       })
       const data = await res.json()
       if (res.ok) {
@@ -72,6 +81,17 @@ export default function NewFunctionModal({ onClose, onCreated }) {
             />
             <p className="text-xs text-muted mt-1">Short identifier. Cannot be changed after creation.</p>
             {errors.code && <p className="text-xs text-red-600 mt-1">{errors.code}</p>}
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-primary mb-1">Parent function</label>
+            <select
+              value={parentId}
+              onChange={e => setParentId(e.target.value)}
+              className="w-full border border-border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-stone-600 bg-white"
+            >
+              <option value="">None</option>
+              {functions.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+            </select>
           </div>
           <div>
             <label className="block text-sm font-medium text-primary mb-1">Description</label>

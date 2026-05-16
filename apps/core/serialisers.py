@@ -35,10 +35,11 @@ class UserSerializer(serializers.ModelSerializer):
 
 class FunctionListSerializer(serializers.ModelSerializer):
     current_user_count = serializers.SerializerMethodField()
+    parent = FunctionBriefSerializer(read_only=True)
 
     class Meta:
         model = Function
-        fields = ('id', 'name', 'code', 'description', 'is_active', 'current_user_count', 'created_at')
+        fields = ('id', 'name', 'code', 'description', 'is_active', 'current_user_count', 'created_at', 'parent')
 
     def get_current_user_count(self, obj):
         return obj.current_users.count()
@@ -71,20 +72,33 @@ class FunctionAssignmentHistorySerializer(serializers.ModelSerializer):
 class FunctionDetailSerializer(FunctionListSerializer):
     current_users = FunctionCurrentUserSerializer(many=True, read_only=True)
     assignment_history = FunctionAssignmentHistorySerializer(many=True, read_only=True)
+    children = FunctionBriefSerializer(many=True, read_only=True)
 
     class Meta(FunctionListSerializer.Meta):
-        fields = FunctionListSerializer.Meta.fields + ('current_users', 'assignment_history')
+        fields = FunctionListSerializer.Meta.fields + ('current_users', 'assignment_history', 'children')
 
 
 class FunctionWriteSerializer(serializers.ModelSerializer):
+    parent_id = serializers.PrimaryKeyRelatedField(
+        source='parent',
+        queryset=Function.objects.all(),
+        required=False,
+        allow_null=True,
+    )
+
     class Meta:
         model = Function
-        fields = ('name', 'code', 'description', 'is_active')
+        fields = ('name', 'code', 'description', 'is_active', 'parent_id')
 
     def validate_code(self, value):
         if self.instance is not None:
             raise serializers.ValidationError('Function code cannot be changed after creation.')
         return value.upper()
+
+    def validate_parent_id(self, value):
+        if value and self.instance and value.id == self.instance.id:
+            raise serializers.ValidationError('A function cannot be its own parent.')
+        return value
 
 
 # ── User serialisers ──────────────────────────────────────────────────────────

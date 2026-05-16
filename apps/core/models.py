@@ -24,6 +24,14 @@ class Function(models.Model):
     code = models.CharField(max_length=50, unique=True)
     description = models.TextField(blank=True)
     is_active = models.BooleanField(default=True)
+    parent = models.ForeignKey(
+        'self',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='children',
+        db_column='parent_id',
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
