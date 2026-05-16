@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+*.egg-info/
+
+# Django
+*.sqlite3
+db.sqlite3
+staticfiles/
+media/
+.env
+
+# Node
+node_modules/
+dist/
+frontend/riskcore/dist/
+frontend/actuarialcore/dist/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.iml
