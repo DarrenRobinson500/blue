@@ -6,6 +6,8 @@ class Command(BaseCommand):
     help = 'Run all seed commands'
 
     def handle(self, *args, **kwargs):
+        call_command('seed_users')
+        call_command('seed_core')
         call_command('seed_risk')
         call_command('seed_actuarial')
         self.stdout.write(self.style.SUCCESS('seed_all complete.'))
