@@ -83,7 +83,7 @@ export default function NewFunctionModal({ onClose, onCreated }) {
             {errors.code && <p className="text-xs text-red-600 mt-1">{errors.code}</p>}
           </div>
           <div>
-            <label className="block text-sm font-medium text-primary mb-1">Parent function</label>
+            <label className="block text-sm font-medium text-primary mb-1">Reports to</label>
             <select
               value={parentId}
               onChange={e => setParentId(e.target.value)}

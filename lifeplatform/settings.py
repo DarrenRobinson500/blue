@@ -27,6 +27,7 @@ INSTALLED_APPS = [
     'apps.risk',
     'apps.actuarial',
     'apps.risks',
+    'apps.project',
 ]
 
 MIDDLEWARE = [

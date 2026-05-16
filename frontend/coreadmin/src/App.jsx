@@ -34,7 +34,7 @@ function AppLayout({ user, onLogout }) {
     <div className="min-h-screen bg-background flex">
       <aside className="w-52 bg-surface border-r border-border flex flex-col shrink-0 sticky top-0 h-screen">
         <div className="px-4 py-4 border-b border-border">
-          <span className="font-semibold text-sm tracking-tight text-primary">CoreAdmin</span>
+          <span className="font-semibold text-sm tracking-tight text-primary">Admin</span>
           <p className="text-xs text-muted mt-0.5">Platform Administration</p>
         </div>
         <nav className="flex-1 p-2 space-y-0.5">

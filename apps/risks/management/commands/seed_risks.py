@@ -2,6 +2,7 @@ from datetime import date, timedelta
 from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
 
+from apps.core.models import Function
 from apps.risk.models import Obligation, Control
 from apps.risks.models import (
     RiskCategory, MatrixCell, Risk, RiskAssessment,
@@ -41,13 +42,19 @@ class Command(BaseCommand):
     help = 'Seed risk register data — run after seed_risk'
 
     def handle(self, *args, **kwargs):
-        cro = User.objects.filter(role='cro').first()
-        actuary = User.objects.filter(role='chief_actuary').first()
+        cro_user = User.objects.filter(role='cro').first()
+        actuary_user = User.objects.filter(role='chief_actuary').first()
         admin_user = User.objects.filter(role='admin').first()
 
-        if not cro:
+        if not cro_user:
             self.stdout.write(self.style.ERROR('No CRO user found. Run seed_users first.'))
             return
+
+        # Functions used as risk owners
+        fn_cro = Function.objects.filter(code='CRO').first()
+        fn_actuary = Function.objects.filter(code='CHIEF_ACT').first()
+        fn_cfo = Function.objects.filter(code='CFO').first()
+        cro = cro_user  # keep alias for treatment owners and assessed_by
 
         # ── Matrix cells ──────────────────────────────────────────────────────
         for (l, c), rating in DEFAULT_MATRIX.items():
@@ -111,7 +118,7 @@ class Command(BaseCommand):
                 ),
                 'category': 'Insurance Risk',
                 'source_type': 'regulatory',
-                'owner': actuary,
+                'owner': fn_actuary,
                 'status': 'active',
                 'velocity': 'high',
                 'notes': 'Monitored monthly by Appointed Actuary. Linked to ICAAP.',
@@ -137,7 +144,7 @@ class Command(BaseCommand):
                 ),
                 'category': 'Insurance Risk',
                 'source_type': 'financial',
-                'owner': actuary,
+                'owner': fn_actuary,
                 'status': 'active',
                 'velocity': 'medium',
                 'notes': '',
@@ -163,7 +170,7 @@ class Command(BaseCommand):
                 ),
                 'category': 'Financial Risk',
                 'source_type': 'financial',
-                'owner': actuary,
+                'owner': fn_actuary,
                 'status': 'active',
                 'velocity': 'high',
                 'notes': 'Reinsurer panel reviewed annually at contract renewal.',
@@ -187,7 +194,7 @@ class Command(BaseCommand):
                 ),
                 'category': 'Financial Risk',
                 'source_type': 'financial',
-                'owner': cro,
+                'owner': fn_cro,
                 'status': 'active',
                 'velocity': 'medium',
                 'notes': '',
@@ -212,7 +219,7 @@ class Command(BaseCommand):
                 ),
                 'category': 'Operational Risk',
                 'source_type': 'operational',
-                'owner': cro,
+                'owner': fn_cro,
                 'status': 'active',
                 'velocity': 'high',
                 'notes': 'Succession planning discussed at March People Committee. No formal successor identified.',
@@ -238,7 +245,7 @@ class Command(BaseCommand):
                 ),
                 'category': 'Operational Risk',
                 'source_type': 'operational',
-                'owner': admin_user or cro,
+                'owner': fn_cfo or fn_cro,
                 'status': 'active',
                 'velocity': 'medium',
                 'notes': 'Model governance framework being developed. Currently no formal model risk policy.',
@@ -264,7 +271,7 @@ class Command(BaseCommand):
                 ),
                 'category': 'Regulatory & Compliance Risk',
                 'source_type': 'regulatory',
-                'owner': cro,
+                'owner': fn_cro,
                 'status': 'active',
                 'velocity': 'medium',
                 'notes': 'APRA has signalled a review of life insurance capital standards in their published roadmap.',
@@ -290,7 +297,7 @@ class Command(BaseCommand):
                 ),
                 'category': 'Strategic Risk',
                 'source_type': 'strategic',
-                'owner': admin_user or cro,
+                'owner': fn_cfo or fn_cro,
                 'status': 'active',
                 'velocity': 'low',
                 'notes': 'IP01 product launch scheduled for Q4. Pilot distribution trial underway.',
@@ -316,7 +323,7 @@ class Command(BaseCommand):
                 ),
                 'category': 'Regulatory & Compliance Risk',
                 'source_type': 'regulatory',
-                'owner': actuary,
+                'owner': fn_actuary,
                 'status': 'draft',
                 'velocity': 'medium',
                 'notes': 'Identified following external audit partner rotation. Requires assessment.',
@@ -335,7 +342,7 @@ class Command(BaseCommand):
                 ),
                 'category': 'Strategic Risk',
                 'source_type': 'strategic',
-                'owner': cro,
+                'owner': fn_cro,
                 'status': 'draft',
                 'velocity': 'low',
                 'notes': 'Two actuarial vacancies open for >4 months.',
@@ -354,7 +361,7 @@ class Command(BaseCommand):
                 ),
                 'category': 'Strategic Risk',
                 'source_type': 'strategic',
-                'owner': admin_user or cro,
+                'owner': fn_cfo or fn_cro,
                 'status': 'draft',
                 'velocity': 'medium',
                 'notes': '',
@@ -374,7 +381,7 @@ class Command(BaseCommand):
                 ),
                 'category': 'Emerging Risk',
                 'source_type': 'operational',
-                'owner': admin_user or cro,
+                'owner': fn_cfo or fn_cro,
                 'status': 'closed',
                 'velocity': 'high',
                 'notes': 'Closed following completion of platform migration to hardened cloud environment. Residual risk transferred to new "Cloud platform security" risk register entry (pending).',

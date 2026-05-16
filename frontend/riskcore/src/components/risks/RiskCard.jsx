@@ -1,4 +1,4 @@
-import { RatingPill, StatusPill, VelocityPill, AppetiteLabel, StaleWarning, label } from './RiskBadge'
+import { RatingPill, StatusPill, VelocityPill, AppetiteLabel, StaleWarning, RiskTypePill, label } from './RiskBadge'
 
 export default function RiskCard({ risk, onView, onAssess, onActivate }) {
   const assessment = risk.current_assessment
@@ -6,7 +6,10 @@ export default function RiskCard({ risk, onView, onAssess, onActivate }) {
   const treatmentCount = risk.treatment_count || 0
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-2">
+    <div
+      onClick={() => onView(risk)}
+      className="bg-white border border-gray-200 rounded-xl p-4 space-y-2 cursor-pointer hover:border-gray-300 hover:shadow-sm transition-all"
+    >
       {risk.assessment_stale && <StaleWarning />}
 
       <div className="flex items-start justify-between gap-3">
@@ -18,21 +21,16 @@ export default function RiskCard({ risk, onView, onAssess, onActivate }) {
           </div>
           <div className="flex flex-wrap items-center gap-2 mt-1">
             <StatusPill value={risk.status} />
+            <RiskTypePill value={risk.risk_type} />
             <VelocityPill value={risk.velocity} />
             {assessment && <RatingPill value={assessment.residual_rating} />}
             {assessment && <AppetiteLabel withinAppetite={assessment.within_appetite} />}
           </div>
         </div>
         <div className="flex gap-2 shrink-0">
-          <button
-            onClick={() => onView(risk)}
-            className="px-3 py-1.5 text-xs border border-gray-200 rounded hover:border-gray-400 text-primary"
-          >
-            View
-          </button>
           {risk.status === 'active' && (
             <button
-              onClick={() => onAssess(risk)}
+              onClick={e => { e.stopPropagation(); onAssess(risk) }}
               className="px-3 py-1.5 text-xs bg-slate-700 text-white rounded hover:bg-slate-800"
             >
               Assess
@@ -40,7 +38,7 @@ export default function RiskCard({ risk, onView, onAssess, onActivate }) {
           )}
           {risk.status === 'draft' && assessment && (
             <button
-              onClick={() => onActivate(risk)}
+              onClick={e => { e.stopPropagation(); onActivate(risk) }}
               className="px-3 py-1.5 text-xs bg-teal-600 text-white rounded hover:bg-teal-700"
             >
               Activate
@@ -50,7 +48,8 @@ export default function RiskCard({ risk, onView, onAssess, onActivate }) {
       </div>
 
       <div className="flex flex-wrap items-center gap-3 text-xs text-muted pt-1">
-        <span>{risk.owner_email || 'Unassigned'}</span>
+        <span>{risk.owner_name || 'Unassigned'}</span>
+        {risk.project_name && <span className="text-violet-600">↳ {risk.project_name}</span>}
         {treatmentCount > 0 && (
           <span>
             {treatmentCount} treatment{treatmentCount !== 1 ? 's' : ''}

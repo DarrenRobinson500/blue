@@ -3,13 +3,62 @@ import Panel from '../Panel'
 import { apiFetch } from '../../auth'
 import {
   RatingPill, StatusPill, VelocityPill, AppetiteLabel, StaleWarning,
-  TreatmentStatusPill, EffectivenessPill, label,
+  TreatmentStatusPill, EffectivenessPill, RiskTypePill, label,
 } from './RiskBadge'
 import AddTreatmentModal from './AddTreatmentModal'
 import EditTreatmentModal from './EditTreatmentModal'
 import LinkControlModal from './LinkControlModal'
 
-const RATINGS_5 = [1, 2, 3, 4, 5]
+const CELL_COLOR = {
+  critical: 'bg-red-500',
+  high: 'bg-orange-400',
+  medium: 'bg-amber-300',
+  low: 'bg-green-400',
+}
+
+function RatingGrid({ label, matrixCells, likelihood, consequence, onChange }) {
+  const resolveRating = (l, c) => matrixCells.find(mc => mc.likelihood === l && mc.consequence === c)?.rating ?? 'low'
+  const currentRating = resolveRating(likelihood, consequence)
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-1.5">
+        <p className="text-xs font-medium text-muted">{label}</p>
+        <RatingPill value={currentRating} />
+      </div>
+      <div className="select-none">
+        <div className="flex gap-px mb-px ml-5">
+          {[1,2,3,4,5].map(c => (
+            <div key={c} className="w-7 text-center text-[10px] text-muted font-medium">{c}</div>
+          ))}
+        </div>
+        {[5,4,3,2,1].map(l => (
+          <div key={l} className="flex items-center gap-px mb-px">
+            <div className="w-4 text-[10px] text-muted text-right mr-1 font-medium">{l}</div>
+            {[1,2,3,4,5].map(c => {
+              const rating = resolveRating(l, c)
+              const selected = l === likelihood && c === consequence
+              return (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => onChange(l, c)}
+                  title={`L${l} × C${c} → ${rating}`}
+                  className={`w-7 h-7 rounded-sm transition-all ${CELL_COLOR[rating] ?? 'bg-gray-200'} ${
+                    selected ? 'ring-2 ring-slate-800 ring-offset-1 scale-110 relative z-10' : 'opacity-60 hover:opacity-90'
+                  }`}
+                />
+              )
+            })}
+          </div>
+        ))}
+        <div className="flex ml-5 mt-1 justify-between">
+          <span className="text-[10px] text-muted">↑ L'hood</span>
+          <span className="text-[10px] text-muted">Impact →</span>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 function AssessmentForm({ risk, matrixCells, onSaved, onCancel }) {
   const [form, setForm] = useState({
@@ -22,11 +71,6 @@ function AssessmentForm({ risk, matrixCells, onSaved, onCancel }) {
   const [error, setError] = useState('')
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
-
-  const resolveRating = (l, c) => {
-    const cell = matrixCells.find(cell => cell.likelihood === l && cell.consequence === c)
-    return cell?.rating ?? '—'
-  }
 
   const submit = async () => {
     if (form.rationale.length < 50) { setError('Rationale must be at least 50 characters.'); return }
@@ -51,45 +95,31 @@ function AssessmentForm({ risk, matrixCells, onSaved, onCancel }) {
   const inputCls = 'border border-gray-200 rounded px-2 py-1.5 text-sm text-primary focus:outline-none focus:ring-1 focus:ring-slate-400'
   const labelCls = 'block text-xs font-medium text-muted mb-1'
 
-  const RatingRow = ({ prefix, lKey, cKey }) => {
-    const l = form[lKey]
-    const c = form[cKey]
-    const rating = resolveRating(l, c)
-    return (
-      <div className="flex items-center gap-3">
-        <div>
-          <label className={labelCls}>Likelihood</label>
-          <select className={inputCls} value={l} onChange={e => set(lKey, Number(e.target.value))}>
-            {RATINGS_5.map(n => <option key={n} value={n}>{n}</option>)}
-          </select>
-        </div>
-        <div>
-          <label className={labelCls}>Consequence</label>
-          <select className={inputCls} value={c} onChange={e => set(cKey, Number(e.target.value))}>
-            {RATINGS_5.map(n => <option key={n} value={n}>{n}</option>)}
-          </select>
-        </div>
-        <div className="mt-4">
-          <RatingPill value={rating} />
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="space-y-4 bg-slate-50 border border-slate-200 rounded-lg p-4">
       <h4 className="text-xs font-semibold text-muted uppercase tracking-wide">New assessment</h4>
-      <div>
-        <p className="text-xs font-medium text-muted mb-2">Inherent (before controls)</p>
-        <RatingRow prefix="inherent" lKey="inherent_likelihood" cKey="inherent_consequence" />
-      </div>
-      <div>
-        <p className="text-xs font-medium text-muted mb-2">Residual (after existing controls)</p>
-        <RatingRow prefix="residual" lKey="residual_likelihood" cKey="residual_consequence" />
-      </div>
-      <div>
-        <p className="text-xs font-medium text-muted mb-2">Target (after planned treatments)</p>
-        <RatingRow prefix="target" lKey="target_likelihood" cKey="target_consequence" />
+      <div className="grid grid-cols-3 gap-4">
+        <RatingGrid
+          label="Inherent (before controls)"
+          matrixCells={matrixCells}
+          likelihood={form.inherent_likelihood}
+          consequence={form.inherent_consequence}
+          onChange={(l, c) => { set('inherent_likelihood', l); set('inherent_consequence', c) }}
+        />
+        <RatingGrid
+          label="Residual (after controls)"
+          matrixCells={matrixCells}
+          likelihood={form.residual_likelihood}
+          consequence={form.residual_consequence}
+          onChange={(l, c) => { set('residual_likelihood', l); set('residual_consequence', c) }}
+        />
+        <RatingGrid
+          label="Target (after treatments)"
+          matrixCells={matrixCells}
+          likelihood={form.target_likelihood}
+          consequence={form.target_consequence}
+          onChange={(l, c) => { set('target_likelihood', l); set('target_consequence', c) }}
+        />
       </div>
       <div>
         <label className={labelCls}>Confidence</label>
@@ -124,7 +154,11 @@ function AssessmentForm({ risk, matrixCells, onSaved, onCancel }) {
   )
 }
 
-export default function RiskDetail({ risk: initialRisk, matrixCells, users, onClose, onRiskUpdated }) {
+const SOURCE_TYPES = ['regulatory', 'operational', 'strategic', 'financial', 'emerging']
+const VELOCITIES = ['high', 'medium', 'low']
+const STATUSES = ['draft', 'active', 'closed']
+
+export default function RiskDetail({ risk: initialRisk, matrixCells, users, categories = [], onClose, onRiskUpdated }) {
   const [risk, setRisk] = useState(initialRisk)
   const [fullRisk, setFullRisk] = useState(null)
   const [assessHistory, setAssessHistory] = useState([])
@@ -136,6 +170,12 @@ export default function RiskDetail({ risk: initialRisk, matrixCells, users, onCl
   const [editingNotes, setEditingNotes] = useState(false)
   const [notesValue, setNotesValue] = useState(risk.notes || '')
   const [savingNotes, setSavingNotes] = useState(false)
+  const [showEditRisk, setShowEditRisk] = useState(false)
+  const [editForm, setEditForm] = useState({})
+  const [savingEdit, setSavingEdit] = useState(false)
+  const [editError, setEditError] = useState('')
+  const [editFunctions, setEditFunctions] = useState([])
+  const [editProjects, setEditProjects] = useState([])
 
   const loadFull = async (r = risk) => {
     const res = await apiFetch(`/api/risks/${r.id}/`)
@@ -207,32 +247,114 @@ export default function RiskDetail({ risk: initialRisk, matrixCells, users, onCl
     setSavingNotes(false)
   }
 
+  const openEdit = async () => {
+    setEditForm({
+      title: r.title || '',
+      description: r.description || '',
+      category: r.category || '',
+      source_type: r.source_type || 'operational',
+      owner: r.owner || '',
+      velocity: r.velocity || 'medium',
+      status: r.status || 'draft',
+      risk_type: r.risk_type || 'bau',
+      project: r.project || '',
+    })
+    setEditError('')
+    const promises = []
+    if (editFunctions.length === 0) {
+      promises.push(
+        apiFetch('/api/core/functions/?is_active=true').then(res => res?.ok && res.json()).then(d => d && setEditFunctions(d))
+      )
+    }
+    if (editProjects.length === 0) {
+      promises.push(
+        apiFetch('/api/project/projects/').then(res => res?.ok && res.json()).then(d => d && setEditProjects(d))
+      )
+    }
+    await Promise.all(promises)
+    setShowEditRisk(true)
+  }
+
+  const saveEdit = async () => {
+    if (!editForm.title.trim() || !editForm.description.trim()) {
+      setEditError('Title and description are required.')
+      return
+    }
+    if (['execution', 'delivered'].includes(editForm.risk_type) && !editForm.project) {
+      setEditError('A project must be linked for Execution and Delivered risks.')
+      return
+    }
+    setSavingEdit(true)
+    setEditError('')
+    const res = await apiFetch(`/api/risks/${r.id}/`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: editForm.title.trim(),
+        description: editForm.description.trim(),
+        category: editForm.category ? Number(editForm.category) : null,
+        source_type: editForm.source_type,
+        owner: editForm.owner ? Number(editForm.owner) : null,
+        velocity: editForm.velocity,
+        status: editForm.status,
+        risk_type: editForm.risk_type,
+        project: editForm.project ? Number(editForm.project) : null,
+      }),
+    })
+    if (res?.ok) {
+      setShowEditRisk(false)
+      await loadFull()
+    } else {
+      const data = await res.json().catch(() => ({}))
+      setEditError(data.title?.[0] || data.detail || 'Save failed.')
+    }
+    setSavingEdit(false)
+  }
+
   const sectionHdr = 'text-xs font-semibold text-muted uppercase tracking-wide mb-3'
+  const inputCls = 'w-full border border-gray-200 rounded px-3 py-2 text-sm text-primary focus:outline-none focus:ring-1 focus:ring-slate-400'
+  const labelCls = 'block text-xs font-medium text-muted mb-1'
 
   return (
     <Panel onClose={onClose}>
       {/* Header */}
       <div className="px-6 py-4 border-b border-gray-200 shrink-0">
-        {r.assessment_stale && (
+        {r.assessment_stale && !showEditRisk && (
           <div className="mb-3">
             <StaleWarning />
           </div>
         )}
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-sm font-semibold text-primary">{r.title}</span>
-          <StatusPill value={r.status} />
-          <VelocityPill value={r.velocity} />
-          {assessment && <RatingPill value={assessment.residual_rating} />}
-          {assessment && <AppetiteLabel withinAppetite={assessment.within_appetite} />}
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-sm font-semibold text-primary">{r.title}</span>
+              <StatusPill value={r.status} />
+              <RiskTypePill value={r.risk_type} />
+              <VelocityPill value={r.velocity} />
+              {assessment && <RatingPill value={assessment.residual_rating} />}
+              {assessment && <AppetiteLabel withinAppetite={assessment.within_appetite} />}
+            </div>
+            {!showEditRisk && (
+              <div className="flex flex-wrap gap-3 mt-1 text-xs text-muted">
+                <span>{r.category_name}</span>
+                <span>·</span>
+                <span>{label(r.source_type)}</span>
+                <span>·</span>
+                <span>{r.owner_name || 'Unassigned'}</span>
+                {r.project_name && <><span>·</span><span className="text-violet-600">↳ {r.project_name}</span></>}
+              </div>
+            )}
+          </div>
+          {!showEditRisk && (
+            <button
+              onClick={openEdit}
+              className="shrink-0 text-xs text-muted hover:text-primary border border-gray-200 rounded px-2 py-1 transition-colors"
+            >
+              Edit
+            </button>
+          )}
         </div>
-        <div className="flex flex-wrap gap-3 mt-1 text-xs text-muted">
-          <span>{r.category_name}</span>
-          <span>·</span>
-          <span>{label(r.source_type)}</span>
-          <span>·</span>
-          <span>{r.owner_email || 'Unassigned'}</span>
-        </div>
-        {linkedObligations.length > 0 && (
+        {!showEditRisk && linkedObligations.length > 0 && (
           <div className="flex flex-wrap gap-1 mt-2">
             {linkedObligations.map(o => (
               <span key={o.id} className="text-xs bg-slate-100 text-slate-600 rounded px-2 py-0.5 font-mono">{o.reference}</span>
@@ -240,6 +362,95 @@ export default function RiskDetail({ risk: initialRisk, matrixCells, users, onCl
           </div>
         )}
       </div>
+
+      {showEditRisk ? (
+        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+          <h3 className="text-xs font-semibold text-muted uppercase tracking-wide">Edit risk</h3>
+          <div>
+            <label className={labelCls}>Title *</label>
+            <input className={inputCls} value={editForm.title} onChange={e => setEditForm(f => ({ ...f, title: e.target.value }))} />
+          </div>
+          <div>
+            <label className={labelCls}>Description *</label>
+            <textarea className={inputCls} rows={4} value={editForm.description} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))} />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className={labelCls}>Category</label>
+              <select className={inputCls} value={editForm.category} onChange={e => setEditForm(f => ({ ...f, category: e.target.value }))}>
+                <option value="">— none —</option>
+                {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className={labelCls}>Source type</label>
+              <select className={inputCls} value={editForm.source_type} onChange={e => setEditForm(f => ({ ...f, source_type: e.target.value }))}>
+                {SOURCE_TYPES.map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
+              </select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className={labelCls}>Owner (function)</label>
+              <select className={inputCls} value={editForm.owner} onChange={e => setEditForm(f => ({ ...f, owner: e.target.value }))}>
+                <option value="">Unassigned</option>
+                {editFunctions.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className={labelCls}>Velocity</label>
+              <select className={inputCls} value={editForm.velocity} onChange={e => setEditForm(f => ({ ...f, velocity: e.target.value }))}>
+                {VELOCITIES.map(v => <option key={v} value={v}>{v.charAt(0).toUpperCase() + v.slice(1)}</option>)}
+              </select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className={labelCls}>Status</label>
+              <select className={inputCls} value={editForm.status} onChange={e => setEditForm(f => ({ ...f, status: e.target.value }))}>
+                {STATUSES.map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className={labelCls}>Risk type</label>
+              <select className={inputCls} value={editForm.risk_type} onChange={e => setEditForm(f => ({ ...f, risk_type: e.target.value }))}>
+                <option value="bau">BAU</option>
+                <option value="execution">Execution</option>
+                <option value="delivered">Delivered</option>
+              </select>
+            </div>
+          </div>
+          {['execution', 'delivered'].includes(editForm.risk_type) && (
+            <div>
+              <label className={labelCls}>
+                Linked project *
+              </label>
+              <select className={inputCls} value={editForm.project} onChange={e => setEditForm(f => ({ ...f, project: e.target.value }))}>
+                <option value="">— select project —</option>
+                {editProjects.map(p => (
+                  <option key={p.id} value={p.id}>{p.name}{!p.active ? ' (inactive)' : ''}</option>
+                ))}
+              </select>
+            </div>
+          )}
+          {editError && <p className="text-sm text-red-600">{editError}</p>}
+          <div className="flex gap-2 pt-2">
+            <button
+              onClick={saveEdit}
+              disabled={savingEdit}
+              className="px-4 py-2 text-sm bg-slate-700 text-white rounded hover:bg-slate-800 disabled:opacity-50"
+            >
+              {savingEdit ? 'Saving…' : 'Save changes'}
+            </button>
+            <button
+              onClick={() => setShowEditRisk(false)}
+              className="px-4 py-2 text-sm border border-gray-200 rounded text-muted hover:text-primary"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : (
 
       <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
 
@@ -455,6 +666,7 @@ export default function RiskDetail({ risk: initialRisk, matrixCells, users, onCl
           )}
         </div>
       </div>
+      )}
 
       {showAddTreatment && (
         <AddTreatmentModal

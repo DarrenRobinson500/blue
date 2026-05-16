@@ -66,6 +66,11 @@ class Risk(models.Model):
         MEDIUM = 'medium', 'Medium'
         LOW = 'low', 'Low'
 
+    class RiskType(models.TextChoices):
+        BAU = 'bau', 'BAU'
+        EXECUTION = 'execution', 'Execution'
+        DELIVERED = 'delivered', 'Delivered'
+
     class ChangeSource(models.TextChoices):
         MANUAL = 'manual', 'Manual'
         SYSTEM_TRIGGERED = 'system_triggered', 'System Triggered'
@@ -73,13 +78,18 @@ class Risk(models.Model):
     title = models.CharField(max_length=200)
     description = models.TextField()
     category = models.ForeignKey(RiskCategory, on_delete=models.PROTECT, related_name='risks')
+    risk_type = models.CharField(max_length=20, choices=RiskType.choices, default=RiskType.BAU)
     source_type = models.CharField(max_length=20, choices=SourceType.choices)
     owner = models.ForeignKey(
-        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL,
+        'core.Function', null=True, blank=True, on_delete=models.SET_NULL,
         related_name='owned_risks'
     )
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.DRAFT)
     velocity = models.CharField(max_length=10, choices=Velocity.choices, default=Velocity.MEDIUM)
+    project = models.ForeignKey(
+        'project.Project', null=True, blank=True, on_delete=models.SET_NULL,
+        related_name='risks'
+    )
     linked_obligations = models.ManyToManyField('risk.Obligation', blank=True, related_name='linked_risks')
     assessment_stale = models.BooleanField(default=False)
     notes = models.TextField(blank=True)

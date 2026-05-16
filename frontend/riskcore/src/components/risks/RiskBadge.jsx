@@ -108,6 +108,21 @@ export function AppetiteLabel({ withinAppetite }) {
     : <span className="text-xs text-red-600 font-semibold">Outside appetite</span>
 }
 
+const RISK_TYPE_CLS = {
+  bau: 'bg-gray-100 text-gray-500',
+  execution: 'bg-violet-100 text-violet-700',
+  delivered: 'bg-emerald-100 text-emerald-700',
+}
+
+export function RiskTypePill({ value }) {
+  if (!value || value === 'bau') return null
+  return (
+    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${RISK_TYPE_CLS[value] || 'bg-gray-100 text-gray-500'}`}>
+      {value.charAt(0).toUpperCase() + value.slice(1)}
+    </span>
+  )
+}
+
 export function StaleWarning() {
   return (
     <div className="bg-amber-50 border-l-4 border-amber-400 rounded px-3 py-2 text-xs text-amber-800">

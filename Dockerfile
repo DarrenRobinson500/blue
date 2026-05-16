@@ -7,7 +7,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl \
     && apt-get install -y --no-install-recommends nodejs \
     && rm -rf /var/lib/apt/lists/*
 
-# Build riskcore → /app/staticfiles/riskcore/
+# Build riskcore → /app/staticfiles/risk/
 COPY frontend/riskcore/package*.json /app/frontend/riskcore/
 RUN cd /app/frontend/riskcore && npm install
 COPY frontend/riskcore/ /app/frontend/riskcore/

@@ -9,12 +9,13 @@ const SORT_OPTIONS = [
   { value: 'assessed_at', label: 'Assessment date' },
 ]
 
-export default function AllRisksTab({ risks, categories, users, onView, onAssess, onActivate }) {
+export default function AllRisksTab({ risks, categories, functions, onView, onAssess, onActivate }) {
   const [search, setSearch] = useState('')
   const [filterCategory, setFilterCategory] = useState('')
   const [filterOwner, setFilterOwner] = useState('')
   const [filterRating, setFilterRating] = useState('')
   const [filterAppetite, setFilterAppetite] = useState('')
+  const [filterRiskType, setFilterRiskType] = useState('')
   const [filterStatus, setFilterStatus] = useState(['active'])
   const [sortBy, setSortBy] = useState('rating')
 
@@ -30,6 +31,7 @@ export default function AllRisksTab({ risks, categories, users, onView, onAssess
       if (filterRating && risk.current_assessment?.residual_rating !== filterRating) return false
       if (filterAppetite === 'within' && risk.current_assessment?.within_appetite !== true) return false
       if (filterAppetite === 'outside' && risk.current_assessment?.within_appetite !== false) return false
+      if (filterRiskType && risk.risk_type !== filterRiskType) return false
       if (search) {
         const s = search.toLowerCase()
         if (!risk.title.toLowerCase().includes(s) && !risk.description.toLowerCase().includes(s)) return false
@@ -48,7 +50,7 @@ export default function AllRisksTab({ risks, categories, users, onView, onAssess
         return 0
       }
       if (sortBy === 'category') return (a.category_name || '').localeCompare(b.category_name || '')
-      if (sortBy === 'owner') return (a.owner_email || 'z').localeCompare(b.owner_email || 'z')
+      if (sortBy === 'owner') return (a.owner_name || 'z').localeCompare(b.owner_name || 'z')
       if (sortBy === 'assessed_at') {
         const da = a.current_assessment?.assessed_at || ''
         const db = b.current_assessment?.assessed_at || ''
@@ -58,7 +60,7 @@ export default function AllRisksTab({ risks, categories, users, onView, onAssess
     })
 
     return r
-  }, [risks, filterStatus, filterCategory, filterOwner, filterRating, filterAppetite, search, sortBy])
+  }, [risks, filterStatus, filterCategory, filterOwner, filterRating, filterAppetite, filterRiskType, search, sortBy])
 
   return (
     <div className="space-y-4">
@@ -89,7 +91,7 @@ export default function AllRisksTab({ risks, categories, users, onView, onAssess
             onChange={e => setFilterOwner(e.target.value)}
           >
             <option value="">All owners</option>
-            {users.map(u => <option key={u.id} value={u.id}>{u.email}</option>)}
+            {functions.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
           </select>
         </div>
         <div>
@@ -113,6 +115,18 @@ export default function AllRisksTab({ risks, categories, users, onView, onAssess
             <option value="">Any appetite</option>
             <option value="within">Within appetite</option>
             <option value="outside">Outside appetite</option>
+          </select>
+        </div>
+        <div>
+          <select
+            className="border border-gray-200 rounded px-2 py-1.5 text-sm text-primary focus:outline-none"
+            value={filterRiskType}
+            onChange={e => setFilterRiskType(e.target.value)}
+          >
+            <option value="">All types</option>
+            <option value="bau">BAU</option>
+            <option value="execution">Execution</option>
+            <option value="delivered">Delivered</option>
           </select>
         </div>
         <div className="flex gap-1">

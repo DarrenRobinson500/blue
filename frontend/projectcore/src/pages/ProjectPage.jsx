@@ -1,0 +1,432 @@
+import { useEffect, useState } from 'react'
+import { addDays, differenceInDays, format, parseISO } from 'date-fns'
+import {
+  getProjects, getTasks, updateTask,
+  reorderTasks, reorderProjects, bulkUpdateTasks, markTaskDone, updateProject,
+} from '../api'
+import GanttChart from '../components/GanttChart'
+import ProjectFormModal from '../components/ProjectFormModal'
+import TaskFormModal from '../components/TaskFormModal'
+
+function cascadeFrom(tasks, predId, predEnd) {
+  let result = tasks
+  for (const dep of tasks.filter(t => t.depends_on === predId)) {
+    const newStart = addDays(predEnd, 1)
+    const dur = Math.max(0, differenceInDays(parseISO(dep.end_date), parseISO(dep.start_date)))
+    const newEnd = addDays(newStart, dur)
+    result = result.map(t =>
+      t.id === dep.id
+        ? { ...t, start_date: format(newStart, 'yyyy-MM-dd'), end_date: format(newEnd, 'yyyy-MM-dd') }
+        : t
+    )
+    result = cascadeFrom(result, dep.id, newEnd)
+  }
+  return result
+}
+
+export default function ProjectPage() {
+  const [projects, setProjects] = useState([])
+  const [visibleProjectIds, setVisibleProjectIds] = useState(new Set())
+  const [activeProjectId, setActiveProjectId] = useState(null)
+  const [tasksByProject, setTasksByProject] = useState({})
+  const [loading, setLoading] = useState(false)
+  const [refreshKey, setRefreshKey] = useState(0)
+  const [showProjectModal, setShowProjectModal] = useState(false)
+  const [taskModal, setTaskModal] = useState({ open: false, task: null, anchorTaskId: null, defaultStartDate: null, projectId: null })
+  const [selectedTaskId, setSelectedTaskId] = useState(null)
+  const [dragProjectIdx, setDragProjectIdx] = useState(null)
+  const [dragOverProjectIdx, setDragOverProjectIdx] = useState(null)
+
+  useEffect(() => {
+    getProjects().then(res => {
+      const ps = res.data || []
+      setProjects(ps)
+      const activeIds = new Set(ps.filter(p => p.active).map(p => p.id))
+      setVisibleProjectIds(activeIds)
+      if (ps.length > 0) setActiveProjectId(ps[0].id)
+    })
+  }, [])
+
+  useEffect(() => {
+    if (visibleProjectIds.size === 0) { setTasksByProject({}); return }
+    setLoading(true)
+    Promise.all(
+      [...visibleProjectIds].map(id => getTasks(id).then(res => ({ id, tasks: res.data || [] })))
+    ).then(results => {
+      const byProject = {}
+      results.forEach(({ id, tasks }) => { byProject[id] = tasks })
+      setTasksByProject(byProject)
+      setLoading(false)
+    })
+  }, [visibleProjectIds, refreshKey])
+
+  const triggerRefresh = () => setRefreshKey(k => k + 1)
+
+  const getProjectTasksForTask = (taskId) => {
+    for (const tasks of Object.values(tasksByProject)) {
+      if (tasks.some(t => t.id === taskId)) return tasks
+    }
+    return []
+  }
+
+  const isMultiProject = visibleProjectIds.size > 1
+
+  const todayStr = format(new Date(), 'yyyy-MM-dd')
+  const ganttRows = projects
+    .filter(p => visibleProjectIds.has(p.id))
+    .flatMap(p => {
+      const tasks = (tasksByProject[p.id] || []).filter(t => !(t.completed && t.end_date < todayStr))
+      return [{ id: `header-${p.id}`, isHeader: true, name: p.name, projectId: p.id }, ...tasks]
+    })
+
+  // ── Project drag-reorder ──────────────────────────────────────────────────────
+
+  const handleProjectDragStart = (e, idx) => {
+    setDragProjectIdx(idx)
+    e.dataTransfer.effectAllowed = 'move'
+  }
+
+  const handleProjectDragOver = (e, idx) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    setDragOverProjectIdx(idx)
+  }
+
+  const handleProjectDrop = async (e, idx) => {
+    e.preventDefault()
+    if (dragProjectIdx === null || dragProjectIdx === idx) {
+      setDragProjectIdx(null)
+      setDragOverProjectIdx(null)
+      return
+    }
+    const reordered = [...projects]
+    const [moved] = reordered.splice(dragProjectIdx, 1)
+    reordered.splice(idx, 0, moved)
+    setProjects(reordered)
+    setDragProjectIdx(null)
+    setDragOverProjectIdx(null)
+    await reorderProjects(reordered.map(p => p.id))
+  }
+
+  const handleProjectDragEnd = () => {
+    setDragProjectIdx(null)
+    setDragOverProjectIdx(null)
+  }
+
+  const toggleVisible = (id) => {
+    setVisibleProjectIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) {
+        next.delete(id)
+        if (id === activeProjectId) {
+          const remaining = projects.filter(p => next.has(p.id))
+          setActiveProjectId(remaining.length > 0 ? remaining[0].id : null)
+        }
+      } else {
+        next.add(id)
+        if (!activeProjectId) setActiveProjectId(id)
+      }
+      return next
+    })
+  }
+
+  const handleToggleActive = async (id) => {
+    const project = projects.find(p => p.id === id)
+    if (!project) return
+    const res = await updateProject(id, { name: project.name, active: !project.active })
+    setProjects(prev => prev.map(p => p.id === id ? res.data : p))
+  }
+
+  const handleProjectCreated = (project) => {
+    setProjects(prev => {
+      const next = [...prev, project]
+      reorderProjects(next.map(p => p.id))
+      return next
+    })
+    setVisibleProjectIds(prev => new Set([...prev, project.id]))
+    setActiveProjectId(project.id)
+    setShowProjectModal(false)
+  }
+
+  // ── Gantt callbacks ───────────────────────────────────────────────────────────
+
+  const handleSave = async (updatedTasks, type) => {
+    const realTasks = updatedTasks.filter(t => !t.isHeader)
+    if (type === 'reorder') {
+      await Promise.all([...visibleProjectIds].map(pid => {
+        const ids = realTasks
+          .filter(t => tasksByProject[pid]?.some(orig => orig.id === t.id))
+          .map(t => t.id)
+        return reorderTasks(ids)
+      }))
+      setTasksByProject(prev => {
+        const next = { ...prev }
+        for (const pid of visibleProjectIds) {
+          if (!next[pid]) continue
+          const orderedIds = realTasks
+            .filter(t => next[pid].some(orig => orig.id === t.id))
+            .map(t => t.id)
+          next[pid] = [...next[pid]].sort((a, b) => {
+            const ai = orderedIds.indexOf(a.id)
+            const bi = orderedIds.indexOf(b.id)
+            return (ai === -1 ? Infinity : ai) - (bi === -1 ? Infinity : bi)
+          })
+        }
+        return next
+      })
+    } else {
+      await bulkUpdateTasks(realTasks.map(t => ({ id: t.id, start_date: t.start_date, end_date: t.end_date })))
+      setTasksByProject(prev => {
+        const next = { ...prev }
+        for (const pid of Object.keys(next)) {
+          next[pid] = next[pid].map(task => {
+            const updated = realTasks.find(t => t.id === task.id)
+            return updated ? { ...task, start_date: updated.start_date, end_date: updated.end_date } : task
+          })
+        }
+        return next
+      })
+    }
+  }
+
+  const handleDependencyCreate = async (taskId, dependsOnId) => {
+    const projectTasks = getProjectTasksForTask(taskId)
+    const task = projectTasks.find(t => t.id === taskId)
+    const pred = projectTasks.find(t => t.id === dependsOnId)
+    if (!task || !pred) return
+
+    const predEnd = parseISO(pred.end_date)
+    const newStart = addDays(predEnd, 1)
+    const dur = Math.max(0, differenceInDays(parseISO(task.end_date), parseISO(task.start_date)))
+    const newEnd = addDays(newStart, dur)
+
+    await updateTask(taskId, {
+      ...task,
+      depends_on: dependsOnId,
+      start_date: format(newStart, 'yyyy-MM-dd'),
+      end_date: format(newEnd, 'yyyy-MM-dd'),
+    })
+
+    let updated = projectTasks.map(t =>
+      t.id === taskId
+        ? { ...t, depends_on: dependsOnId, start_date: format(newStart, 'yyyy-MM-dd'), end_date: format(newEnd, 'yyyy-MM-dd') }
+        : t
+    )
+    updated = cascadeFrom(updated, taskId, newEnd)
+    const changed = updated.filter(t => {
+      const orig = projectTasks.find(o => o.id === t.id)
+      return orig && (orig.start_date !== t.start_date || orig.end_date !== t.end_date) && t.id !== taskId
+    })
+    if (changed.length) await bulkUpdateTasks(changed.map(t => ({ id: t.id, start_date: t.start_date, end_date: t.end_date })))
+
+    const pid = [...visibleProjectIds].find(pid => tasksByProject[pid]?.some(t => t.id === taskId))
+    if (pid != null) setTasksByProject(prev => ({ ...prev, [pid]: updated }))
+  }
+
+  const handleDeleteLink = async (taskId) => {
+    const projectTasks = getProjectTasksForTask(taskId)
+    const task = projectTasks.find(t => t.id === taskId)
+    if (!task) return
+    await updateTask(taskId, { ...task, depends_on: null })
+    const pid = [...visibleProjectIds].find(pid => tasksByProject[pid]?.some(t => t.id === taskId))
+    if (pid != null) {
+      setTasksByProject(prev => ({
+        ...prev,
+        [pid]: prev[pid].map(t => t.id === taskId ? { ...t, depends_on: null } : t),
+      }))
+    }
+  }
+
+  const handleTaskDone = async (taskId) => {
+    const res = await markTaskDone(taskId)
+    const pid = [...visibleProjectIds].find(pid => tasksByProject[pid]?.some(t => t.id === taskId))
+    if (pid != null) {
+      setTasksByProject(prev => ({
+        ...prev,
+        [pid]: prev[pid].map(t => t.id === taskId ? res.data : t),
+      }))
+    }
+  }
+
+  const handleTaskSelect = (taskId) => {
+    setSelectedTaskId(taskId)
+    if (taskId) {
+      for (const [pid, tasks] of Object.entries(tasksByProject)) {
+        if (tasks.some(t => t.id === taskId)) {
+          setActiveProjectId(Number(pid))
+          break
+        }
+      }
+    }
+  }
+
+  const handleTaskSaved = async (savedInfo) => {
+    const { anchorTaskId, projectId } = taskModal
+    const pid = projectId || activeProjectId
+    setTaskModal({ open: false, task: null, anchorTaskId: null, defaultStartDate: null, projectId: null })
+
+    const freshRes = await getTasks(pid)
+    const freshTasks = freshRes.data || []
+    setTasksByProject(prev => ({ ...prev, [pid]: freshTasks }))
+
+    if (savedInfo?.isNew && savedInfo?.id && anchorTaskId) {
+      const anchor = freshTasks.find(t => t.id === anchorTaskId)
+      const newTask = freshTasks.find(t => t.id === savedInfo.id)
+      if (newTask && anchor) {
+        await updateTask(savedInfo.id, { ...newTask, depends_on: anchorTaskId })
+        const anchorIdx = freshTasks.findIndex(t => t.id === anchorTaskId)
+        const newTaskIdx = freshTasks.findIndex(t => t.id === savedInfo.id)
+        const reordered = [...freshTasks]
+        const [moved] = reordered.splice(newTaskIdx, 1)
+        const insertAt = newTaskIdx < anchorIdx ? anchorIdx : anchorIdx + 1
+        reordered.splice(insertAt, 0, moved)
+        await reorderTasks(reordered.map(t => t.id))
+      }
+      triggerRefresh()
+      setSelectedTaskId(savedInfo.id)
+    } else if (savedInfo?.isNew && savedInfo?.id) {
+      const newTaskIdx = freshTasks.findIndex(t => t.id === savedInfo.id)
+      if (newTaskIdx !== -1 && newTaskIdx !== freshTasks.length - 1) {
+        const reordered = [...freshTasks]
+        const [moved] = reordered.splice(newTaskIdx, 1)
+        reordered.push(moved)
+        await reorderTasks(reordered.map(t => t.id))
+        setTasksByProject(prev => ({ ...prev, [pid]: reordered }))
+      }
+      setSelectedTaskId(savedInfo.id)
+    } else if (savedInfo?.id && savedInfo?.end_date) {
+      const cascaded = cascadeFrom(freshTasks, savedInfo.id, parseISO(savedInfo.end_date))
+      const changed = cascaded.filter(t => {
+        const orig = freshTasks.find(o => o.id === t.id)
+        return orig && (orig.start_date !== t.start_date || orig.end_date !== t.end_date)
+      })
+      if (changed.length) {
+        await bulkUpdateTasks(changed.map(t => ({ id: t.id, start_date: t.start_date, end_date: t.end_date })))
+        triggerRefresh()
+      }
+    }
+  }
+
+  return (
+    <div className="p-6 max-w-7xl mx-auto">
+
+      {/* Project management panel */}
+      <div className="mb-4 border border-gray-200 rounded-lg">
+        <div className="flex items-center justify-between px-3 py-2 bg-gray-50 border-b border-gray-200 rounded-t-lg">
+          <span className="text-sm font-semibold text-gray-700">Projects</span>
+          <button
+            onClick={() => setShowProjectModal(true)}
+            className="text-xs px-2 py-1 bg-stone-700 text-white rounded hover:bg-stone-800 transition-colors"
+          >
+            + New project
+          </button>
+        </div>
+        <div className="divide-y divide-gray-100">
+          {projects.map((p, idx) => (
+            <div
+              key={p.id}
+              onClick={() => setActiveProjectId(p.id)}
+              onDragOver={(e) => handleProjectDragOver(e, idx)}
+              onDrop={(e) => handleProjectDrop(e, idx)}
+              onDragEnd={handleProjectDragEnd}
+              className={`flex items-center gap-2 px-3 py-1.5 cursor-pointer ${activeProjectId === p.id ? 'bg-indigo-50' : 'hover:bg-gray-50'}`}
+              style={{
+                borderTop: dragOverProjectIdx === idx && dragProjectIdx !== null && dragProjectIdx > idx ? '2px solid #818cf8' : '2px solid transparent',
+                borderBottom: dragOverProjectIdx === idx && dragProjectIdx !== null && dragProjectIdx < idx ? '2px solid #818cf8' : '2px solid transparent',
+              }}
+            >
+              <span
+                draggable
+                onDragStart={(e) => { e.stopPropagation(); handleProjectDragStart(e, idx) }}
+                onClick={e => e.stopPropagation()}
+                className="text-gray-300 hover:text-gray-500 cursor-grab shrink-0 select-none text-base"
+              >⠿</span>
+              <input
+                type="checkbox"
+                checked={visibleProjectIds.has(p.id)}
+                onChange={() => toggleVisible(p.id)}
+                onClick={e => e.stopPropagation()}
+                className="cursor-pointer shrink-0"
+              />
+              <span className={`flex-1 text-sm min-w-0 truncate ${activeProjectId === p.id ? 'font-semibold text-indigo-700' : p.active ? 'text-gray-800' : 'text-gray-400'}`}>
+                {p.name}
+                {!p.active && <span className="text-xs ml-1">(inactive)</span>}
+              </span>
+              <button
+                onClick={e => {
+                  e.stopPropagation()
+                  setActiveProjectId(p.id)
+                  const anchor = selectedTaskId && tasksByProject[p.id]?.some(t => t.id === selectedTaskId)
+                    ? ganttRows.find(t => !t.isHeader && t.id === selectedTaskId)
+                    : null
+                  const defaultStart = anchor ? format(addDays(parseISO(anchor.end_date), 1), 'yyyy-MM-dd') : null
+                  setTaskModal({ open: true, task: null, anchorTaskId: anchor?.id ?? null, defaultStartDate: defaultStart, projectId: p.id })
+                }}
+                className="text-xs px-2 py-0.5 rounded border border-indigo-300 text-indigo-600 hover:bg-indigo-50 shrink-0"
+              >+ Task</button>
+              <button
+                onClick={e => { e.stopPropagation(); handleToggleActive(p.id) }}
+                className={`text-xs px-2 py-0.5 rounded border shrink-0 ${p.active ? 'border-green-500 text-green-500 hover:bg-green-50' : 'border-gray-300 text-gray-500 hover:bg-gray-50'}`}
+              >
+                {p.active ? 'Deactivate' : 'Activate'}
+              </button>
+            </div>
+          ))}
+          {projects.length === 0 && (
+            <p className="text-sm text-gray-400 px-3 py-3">No projects yet — click + New project to create one.</p>
+          )}
+        </div>
+      </div>
+
+      {/* Gantt hints */}
+      {visibleProjectIds.size > 0 && (
+        <div className="mb-3">
+          <span className="text-xs text-gray-400">Drag bar edges to resize · Drag bar to move · ● to link · ⠿ to reorder · double-click to edit</span>
+        </div>
+      )}
+
+      {/* Gantt chart */}
+      {projects.length === 0 ? (
+        <p className="text-gray-400 text-sm">Create a project to get started.</p>
+      ) : visibleProjectIds.size === 0 ? (
+        <p className="text-gray-400 text-sm">Check at least one project above to view its tasks.</p>
+      ) : loading ? (
+        <p className="text-gray-400 text-sm">Loading…</p>
+      ) : (
+        <GanttChart
+          tasks={ganttRows}
+          onSave={handleSave}
+          onDependencyCreate={handleDependencyCreate}
+          onDeleteLink={handleDeleteLink}
+          onTaskEdit={(task) => setTaskModal({ open: true, task, anchorTaskId: null, defaultStartDate: null, projectId: activeProjectId })}
+          selectedTaskId={selectedTaskId}
+          onTaskSelect={handleTaskSelect}
+          onTaskDone={handleTaskDone}
+          isMultiProject={isMultiProject}
+          onAddTask={(projectId) => {
+            setActiveProjectId(projectId)
+            const anchor = selectedTaskId && tasksByProject[projectId]?.some(t => t.id === selectedTaskId)
+              ? ganttRows.find(t => !t.isHeader && t.id === selectedTaskId)
+              : null
+            const defaultStart = anchor ? format(addDays(parseISO(anchor.end_date), 1), 'yyyy-MM-dd') : null
+            setTaskModal({ open: true, task: null, anchorTaskId: anchor?.id ?? null, defaultStartDate: defaultStart, projectId })
+          }}
+        />
+      )}
+
+      {showProjectModal && (
+        <ProjectFormModal onSuccess={handleProjectCreated} onClose={() => setShowProjectModal(false)} />
+      )}
+
+      {taskModal.open && (
+        <TaskFormModal
+          task={taskModal.task}
+          projectId={taskModal.projectId || activeProjectId}
+          defaultStartDate={taskModal.defaultStartDate}
+          onSuccess={handleTaskSaved}
+          onClose={() => setTaskModal({ open: false, task: null, anchorTaskId: null, defaultStartDate: null, projectId: null })}
+        />
+      )}
+    </div>
+  )
+}

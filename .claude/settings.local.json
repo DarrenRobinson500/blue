@@ -51,7 +51,23 @@
       "Bash(python manage.py makemigrations risks)",
       "Bash(python manage.py migrate)",
       "Bash(python manage.py seed_risk)",
-      "Bash(python manage.py seed_risks)"
+      "Bash(python manage.py seed_risks)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push *)",
+      "Bash(.venv/Scripts/python.exe *)",
+      "Bash(dir /s /b \"C:\\\\Users\\\\darre\\\\PycharmProjects\\\\blue\\\\apps\\\\*models.py\")",
+      "Bash(.venv/Scripts/python manage.py migrate risks)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\darre\\\\PycharmProjects\\\\calendar\\\\calproject\" -Recurse -Directory)",
+      "Bash(Sort-Object)",
+      "Bash(Head -50)",
+      "PowerShell(Get-ChildItem *)",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\darre\\\\PycharmProjects\\\\calendar\\\\calproject\\\\backend\" -Depth 2 | Where-Object { $_.Extension -eq \".py\" -or $_.PSIsContainer } | Select-Object FullName)",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\darre\\\\PycharmProjects\\\\calendar\\\\calproject\\\\backend\" -Depth 3 -File | Where-Object { $_.Extension -eq \".py\" } | Select-Object FullName)",
+      "PowerShell(head *)",
+      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\darre\\\\PycharmProjects\\\\calendar\\\\calproject\\\\frontend\" -Recurse -File | Where-Object { $_.Name -match \"\\\\.\\(jsx|js\\)$\" } | Select-Object Name, FullName | Select-Object -First 20)",
+      "PowerShell($files = Get-ChildItem \"C:\\\\Users\\\\darre\\\\PycharmProjects\\\\calendar\\\\calproject\\\\frontend\\\\src\" -Recurse -File | Where-Object { $_.Extension -match \"jsx|js\" }; $files | Select-Object FullName)",
+      "Bash(python *)"
     ]
   }
 }

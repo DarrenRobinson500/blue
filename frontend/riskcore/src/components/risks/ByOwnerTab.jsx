@@ -7,7 +7,7 @@ export default function ByOwnerTab({ risks, onView }) {
 
   const grouped = {}
   activeRisks.forEach(r => {
-    const key = r.owner_email || '__unassigned__'
+    const key = r.owner_name || '__unassigned__'
     if (!grouped[key]) grouped[key] = []
     grouped[key].push(r)
   })

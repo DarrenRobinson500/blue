@@ -119,7 +119,8 @@ class RiskControlSerializer(serializers.ModelSerializer):
 class RiskListSerializer(serializers.ModelSerializer):
     category_name = serializers.CharField(source='category.name', read_only=True)
     category_appetite = serializers.CharField(source='category.appetite', read_only=True)
-    owner_email = serializers.CharField(source='owner.email', read_only=True, default=None)
+    owner_name = serializers.CharField(source='owner.name', read_only=True, default=None)
+    project_name = serializers.CharField(source='project.name', read_only=True, default=None)
     current_assessment = serializers.SerializerMethodField()
     treatment_count = serializers.SerializerMethodField()
     overdue_treatment_count = serializers.SerializerMethodField()
@@ -129,7 +130,8 @@ class RiskListSerializer(serializers.ModelSerializer):
         model = Risk
         fields = [
             'id', 'title', 'description', 'category', 'category_name', 'category_appetite',
-            'source_type', 'owner', 'owner_email', 'status', 'velocity',
+            'risk_type', 'project', 'project_name',
+            'source_type', 'owner', 'owner_name', 'status', 'velocity',
             'assessment_stale', 'notes', 'created_at', 'updated_at', 'last_change_source',
             'current_assessment', 'treatment_count', 'overdue_treatment_count', 'control_count',
         ]
@@ -173,7 +175,7 @@ class RiskDetailSerializer(RiskListSerializer):
 
     def get_treatments(self, obj):
         return TreatmentSerializer(
-            obj.treatments.select_related('owner', 'linked_control', 'risk__category', 'risk__assessments'),
+            obj.treatments.select_related('owner', 'linked_control', 'risk__category'),
             many=True,
         ).data
 
@@ -183,27 +185,62 @@ def _obligation_queryset():
     return Obligation.objects.all()
 
 
+def _project_queryset():
+    from apps.project.models import Project
+    return Project.objects.all()
+
+
+_REQUIRES_PROJECT = ('execution', 'delivered')
+
+
 class RiskCreateSerializer(serializers.ModelSerializer):
     linked_obligations = serializers.PrimaryKeyRelatedField(
         many=True, queryset=_obligation_queryset(), required=False,
+    )
+    project = serializers.PrimaryKeyRelatedField(
+        queryset=_project_queryset(), allow_null=True, required=False,
     )
 
     class Meta:
         model = Risk
         fields = [
             'title', 'description', 'category', 'source_type', 'owner',
-            'velocity', 'linked_obligations', 'notes',
+            'risk_type', 'project', 'velocity', 'linked_obligations', 'notes',
         ]
+
+    def validate(self, data):
+        risk_type = data.get('risk_type', 'bau')
+        project = data.get('project')
+        if risk_type in _REQUIRES_PROJECT and project is None:
+            raise serializers.ValidationError(
+                {'project': 'A project must be linked for Execution and Delivered risks.'}
+            )
+        return data
 
 
 class RiskPatchSerializer(serializers.ModelSerializer):
     linked_obligations = serializers.PrimaryKeyRelatedField(
         many=True, queryset=_obligation_queryset(), required=False,
     )
+    project = serializers.PrimaryKeyRelatedField(
+        queryset=_project_queryset(), allow_null=True, required=False,
+    )
 
     class Meta:
         model = Risk
         fields = [
             'title', 'description', 'category', 'source_type', 'owner',
-            'velocity', 'linked_obligations', 'notes',
+            'risk_type', 'project', 'velocity', 'status', 'linked_obligations', 'notes',
         ]
+
+    def validate(self, data):
+        risk_type = data.get('risk_type') or (self.instance.risk_type if self.instance else 'bau')
+        if 'project' in data:
+            project = data['project']
+        else:
+            project = self.instance.project if self.instance else None
+        if risk_type in _REQUIRES_PROJECT and project is None:
+            raise serializers.ValidationError(
+                {'project': 'A project must be linked for Execution and Delivered risks.'}
+            )
+        return data

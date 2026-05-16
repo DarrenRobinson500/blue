@@ -57,7 +57,7 @@ export default function ByCategoryTab({ risks, categories, onView }) {
                     {r.current_assessment && <RatingPill value={r.current_assessment.residual_rating} size="xs" />}
                     {r.current_assessment && <AppetiteLabel withinAppetite={r.current_assessment.within_appetite} />}
                   </div>
-                  <span className="text-xs text-muted shrink-0">{r.owner_email || 'Unassigned'}</span>
+                  <span className="text-xs text-muted shrink-0">{r.owner_name || 'Unassigned'}</span>
                 </div>
               ))}
             </div>

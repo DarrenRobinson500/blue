@@ -25,7 +25,7 @@ function useData(path) {
 
 const TABS = ['All obligations', 'By source', 'By owner', 'Controls library']
 
-export default function ObligationsPage({ addObligationTrigger = 0, addControlTrigger = 0 }) {
+export default function ObligationsPage() {
   const [stats, , reloadStats] = useData('/api/risk/stats/')
   const [obligations, obLoading, reloadObligations] = useData('/api/risk/obligations/')
   const [sources, , reloadSources] = useData('/api/risk/sources/')
@@ -40,10 +40,6 @@ export default function ObligationsPage({ addObligationTrigger = 0, addControlTr
   const [filterStatus, setFilterStatus] = useState('')
 
   const reload = () => { reloadObligations(); reloadStats(); reloadControls() }
-
-  // Open modals when top-bar buttons fire
-  useEffect(() => { if (addObligationTrigger > 0) setShowAddObligation(true) }, [addObligationTrigger])
-  useEffect(() => { if (addControlTrigger > 0) setShowAddControl(true) }, [addControlTrigger])
 
   const handleObligationUpdated = (updated) => {
     if (selectedObligation?.id === updated.id) setSelectedObligation(updated)
@@ -93,7 +89,25 @@ export default function ObligationsPage({ addObligationTrigger = 0, addControlTr
   const openControlPanel = (c) => { setSelectedObligation(null); setSelectedControl(c) }
 
   return (
-    <>
+    <div className="p-6 max-w-7xl mx-auto">
+      {/* Page header */}
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-lg font-semibold text-primary">Obligations</h1>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowAddObligation(true)}
+            className="px-3 py-1.5 text-xs bg-stone-700 text-white rounded hover:bg-stone-800 transition-colors"
+          >
+            + Add obligation
+          </button>
+          <button
+            onClick={() => setShowAddControl(true)}
+            className="px-3 py-1.5 text-xs border border-gray-300 text-primary rounded hover:border-gray-500 transition-colors"
+          >
+            + Add control
+          </button>
+        </div>
+      </div>
       {/* Stats row */}
       <div className="grid grid-cols-5 gap-4 mb-6">
         <StatTile label="Total obligations" value={stats?.total_obligations} />
@@ -269,6 +283,6 @@ export default function ObligationsPage({ addObligationTrigger = 0, addControlTr
         />
       )}
 
-    </>
+    </div>
   )
 }

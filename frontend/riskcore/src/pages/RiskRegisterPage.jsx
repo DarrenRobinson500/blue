@@ -11,11 +11,12 @@ import MatrixTab from '../components/risks/MatrixTab'
 import RiskDetail from '../components/risks/RiskDetail'
 import AddRiskModal from '../components/risks/AddRiskModal'
 
-export default function RiskRegisterPage({ addRiskTrigger, editMatrixTrigger, onMatrixEditorClose }) {
+export default function RiskRegisterPage() {
   const { risks, loadAll, refresh } = useRisks()
   const { cells, load: loadMatrix, updateMatrix } = useRiskMatrix()
   const [categories, setCategories] = useState([])
   const [users, setUsers] = useState([])
+  const [functions, setFunctions] = useState([])
   const [stats, setStats] = useState(null)
   const [tab, setTab] = useState('all')
   const [selectedRisk, setSelectedRisk] = useState(null)
@@ -37,16 +38,19 @@ export default function RiskRegisterPage({ addRiskTrigger, editMatrixTrigger, on
     if (res?.ok) setUsers(await res.json())
   }, [])
 
+  const loadFunctions = useCallback(async () => {
+    const res = await apiFetch('/api/core/functions/?is_active=true')
+    if (res?.ok) setFunctions(await res.json())
+  }, [])
+
   useEffect(() => {
     loadAll()
     loadMatrix()
     loadStats()
     loadCategories()
     loadUsers()
+    loadFunctions()
   }, [])
-
-  useEffect(() => { if (addRiskTrigger) setShowAddRisk(true) }, [addRiskTrigger])
-  useEffect(() => { if (editMatrixTrigger) setShowMatrixEditor(true) }, [editMatrixTrigger])
 
   const handleRiskCreated = async (risk) => {
     await loadAll()
@@ -90,7 +94,7 @@ export default function RiskRegisterPage({ addRiskTrigger, editMatrixTrigger, on
   const TABS = [
     { key: 'all', label: 'All risks', badge: stats?.active_risks },
     { key: 'category', label: 'By category', badge: categories.filter(c => risks.some(r => r.status === 'active' && r.category === c.id)).length || undefined },
-    { key: 'owner', label: 'By owner', badge: [...new Set(risks.filter(r => r.status === 'active').map(r => r.owner_email))].filter(Boolean).length || undefined },
+    { key: 'owner', label: 'By owner', badge: [...new Set(risks.filter(r => r.status === 'active').map(r => r.owner_name))].filter(Boolean).length || undefined },
     {
       key: 'treatments', label: 'Treatments',
       badge: (() => {
@@ -102,7 +106,25 @@ export default function RiskRegisterPage({ addRiskTrigger, editMatrixTrigger, on
   ]
 
   return (
-    <div className="space-y-6">
+    <div className="p-6 max-w-7xl mx-auto space-y-6">
+      {/* Page header */}
+      <div className="flex items-center justify-between">
+        <h1 className="text-lg font-semibold text-primary">Risk Register</h1>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowAddRisk(true)}
+            className="px-3 py-1.5 text-xs bg-stone-700 text-white rounded hover:bg-stone-800 transition-colors"
+          >
+            + Add risk
+          </button>
+          <button
+            onClick={() => setShowMatrixEditor(true)}
+            className="px-3 py-1.5 text-xs border border-gray-300 text-primary rounded hover:border-gray-500 transition-colors"
+          >
+            Edit matrix
+          </button>
+        </div>
+      </div>
       {/* Stats row */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         <StatTile label="Active risks" value={stats?.active_risks} />
@@ -148,7 +170,7 @@ export default function RiskRegisterPage({ addRiskTrigger, editMatrixTrigger, on
         <AllRisksTab
           risks={risks}
           categories={categories}
-          users={users}
+          functions={functions}
           onView={setSelectedRisk}
           onAssess={handleAssess}
           onActivate={handleActivate}
@@ -188,6 +210,7 @@ export default function RiskRegisterPage({ addRiskTrigger, editMatrixTrigger, on
           risk={selectedRisk}
           matrixCells={cells}
           users={users}
+          categories={categories}
           onClose={() => { setSelectedRisk(null); loadStats() }}
           onRiskUpdated={handleRiskUpdated}
         />
@@ -197,7 +220,6 @@ export default function RiskRegisterPage({ addRiskTrigger, editMatrixTrigger, on
       {showAddRisk && (
         <AddRiskModal
           categories={categories}
-          users={users}
           onClose={() => setShowAddRisk(false)}
           onCreated={handleRiskCreated}
         />

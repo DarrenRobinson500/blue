@@ -71,7 +71,7 @@ export default function EditFunctionModal({ fn, onClose, onSaved }) {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-primary mb-1">Parent function</label>
+            <label className="block text-sm font-medium text-primary mb-1">Reports to</label>
             <select
               value={parentId}
               onChange={e => setParentId(e.target.value)}

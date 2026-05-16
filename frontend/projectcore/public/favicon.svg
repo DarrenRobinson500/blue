@@ -1,0 +1,14 @@
+<svg width="100%" viewBox="0 0 680 680" role="img" style="" xmlns="http://www.w3.org/2000/svg">
+  <title style="fill:rgb(0, 0, 0);stroke:none;color:rgb(0, 0, 0);stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;opacity:1;font-family:&quot;Anthropic Sans&quot;, -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, sans-serif;font-size:16px;font-weight:400;text-anchor:start;dominant-baseline:auto">LifePlatform app icon</title>
+  <defs>
+    <clipPath id="iconClip">
+      <rect x="140" y="140" width="400" height="400" rx="80"/>
+    </clipPath>
+  </defs>
+  <rect x="140" y="140" width="400" height="400" rx="80" fill="#0F2044"/>
+  <rect x="140" y="140" width="400" height="400" rx="80" fill="none" stroke="#1A3A6E" stroke-width="2"/>
+  <rect x="140" y="496" width="400" height="44" rx="0" fill="#C8922A" clip-path="url(#iconClip)"/>
+  <rect x="140" y="488" width="400" height="12" rx="0" fill="#A67420" clip-path="url(#iconClip)"/>
+  <path d="M340 218 L408 248 L408 322 Q408 374 340 402 Q272 374 272 322 L272 248 Z" fill="none" stroke="#FFFFFF" stroke-width="10" stroke-linejoin="round" stroke-linecap="round"/>
+  <polyline points="291,310 311,310 323,284 335,338 347,294 358,318 370,310 389,310" fill="none" stroke="#C8922A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

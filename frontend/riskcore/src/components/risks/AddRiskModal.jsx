@@ -5,11 +5,14 @@ import { apiFetch } from '../../auth'
 const SOURCE_TYPES = ['regulatory', 'operational', 'strategic', 'financial', 'emerging']
 const VELOCITIES = ['high', 'medium', 'low']
 
-export default function AddRiskModal({ categories, users, onClose, onCreated }) {
+export default function AddRiskModal({ categories, onClose, onCreated }) {
   const [obligations, setObligations] = useState([])
+  const [functions, setFunctions] = useState([])
+  const [projects, setProjects] = useState([])
   const [form, setForm] = useState({
     title: '', description: '', category: categories[0]?.id || '',
     source_type: 'operational', owner: '', velocity: 'medium',
+    risk_type: 'bau', project: '',
     linked_obligations: [], notes: '',
   })
   const [loading, setLoading] = useState(false)
@@ -17,6 +20,8 @@ export default function AddRiskModal({ categories, users, onClose, onCreated }) 
 
   useEffect(() => {
     apiFetch('/api/obligations-list/').then(r => r?.json()).then(d => d && setObligations(d))
+    apiFetch('/api/core/functions/?is_active=true').then(r => r?.json()).then(d => d && setFunctions(d))
+    apiFetch('/api/project/projects/').then(r => r?.json()).then(d => d && setProjects(d))
   }, [])
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
@@ -36,6 +41,10 @@ export default function AddRiskModal({ categories, users, onClose, onCreated }) 
       setError('Regulatory risks must be linked to at least one obligation.')
       return
     }
+    if (['execution', 'delivered'].includes(form.risk_type) && !form.project) {
+      setError('A project must be linked for Execution and Delivered risks.')
+      return
+    }
     setLoading(true)
     setError('')
     try {
@@ -46,6 +55,7 @@ export default function AddRiskModal({ categories, users, onClose, onCreated }) 
           ...form,
           category: Number(form.category),
           owner: form.owner ? Number(form.owner) : null,
+          project: form.project ? Number(form.project) : null,
         }),
       })
       const data = await res.json()
@@ -92,10 +102,10 @@ export default function AddRiskModal({ categories, users, onClose, onCreated }) 
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className={labelCls}>Owner</label>
+            <label className={labelCls}>Owner (function)</label>
             <select className={inputCls} value={form.owner} onChange={e => set('owner', e.target.value)}>
               <option value="">Unassigned</option>
-              {users.map(u => <option key={u.id} value={u.id}>{u.email}</option>)}
+              {functions.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
             </select>
           </div>
           <div>
@@ -105,6 +115,25 @@ export default function AddRiskModal({ categories, users, onClose, onCreated }) 
             </select>
           </div>
         </div>
+        <div>
+          <label className={labelCls}>Risk type</label>
+          <select className={inputCls} value={form.risk_type} onChange={e => set('risk_type', e.target.value)}>
+            <option value="bau">BAU</option>
+            <option value="execution">Execution</option>
+            <option value="delivered">Delivered</option>
+          </select>
+        </div>
+        {['execution', 'delivered'].includes(form.risk_type) && (
+          <div>
+            <label className={labelCls}>
+              Linked project *
+            </label>
+            <select className={inputCls} value={form.project} onChange={e => set('project', e.target.value)}>
+              <option value="">— select project —</option>
+              {projects.map(p => <option key={p.id} value={p.id}>{p.name}{!p.active ? ' (inactive)' : ''}</option>)}
+            </select>
+          </div>
+        )}
         <div>
           <label className={labelCls}>
             Linked obligations

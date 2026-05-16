@@ -1,11 +1,11 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-export default defineConfig({
-  base: '/static/riskcore/',
+export default defineConfig(({ command }) => ({
+  base: command === 'serve' ? '/risk/' : '/static/risk/',
   plugins: [react()],
   build: {
-    outDir: '../../staticfiles/riskcore',
+    outDir: '../../staticfiles/risk',
   },
   server: {
     port: 5173,
@@ -14,4 +14,4 @@ export default defineConfig({
       '/media': { target: 'http://127.0.0.1:8000', changeOrigin: true },
     },
   },
-})
+}))
