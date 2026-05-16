@@ -2,7 +2,11 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
 export default defineConfig({
+  base: '/static/riskcore/',
   plugins: [react()],
+  build: {
+    outDir: '../../staticfiles/riskcore',
+  },
   server: {
     port: 5173,
     proxy: {

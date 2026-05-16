@@ -1,0 +1,15 @@
+.venv/
+__pycache__/
+*.pyc
+.git/
+*.sqlite3
+db.sqlite3
+staticfiles/
+media/
+.env
+.idea/
+.vscode/
+frontend/riskcore/dist/
+frontend/actuarialcore/dist/
+frontend/riskcore/node_modules/
+frontend/actuarialcore/node_modules/

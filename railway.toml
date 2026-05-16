@@ -1,0 +1,8 @@
+[build]
+builder = "dockerfile"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+preDeployCommand = "python /app/manage.py migrate"
+startCommand = "sh -c 'gunicorn lifeplatform.wsgi:application --bind 0.0.0.0:$PORT'"
+healthcheckPath = "/health/"
