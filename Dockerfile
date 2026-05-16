@@ -19,6 +19,12 @@ RUN cd /app/frontend/actuarialcore && npm install
 COPY frontend/actuarialcore/ /app/frontend/actuarialcore/
 RUN cd /app/frontend/actuarialcore && npm run build
 
+# Build coreadmin → /app/staticfiles/coreadmin/
+COPY frontend/coreadmin/package*.json /app/frontend/coreadmin/
+RUN cd /app/frontend/coreadmin && npm install
+COPY frontend/coreadmin/ /app/frontend/coreadmin/
+RUN cd /app/frontend/coreadmin && npm run build
+
 # Python deps
 COPY requirements.txt /app/
 RUN pip install --no-cache-dir -r /app/requirements.txt

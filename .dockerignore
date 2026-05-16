@@ -13,3 +13,5 @@ frontend/riskcore/dist/
 frontend/actuarialcore/dist/
 frontend/riskcore/node_modules/
 frontend/actuarialcore/node_modules/
+frontend/coreadmin/dist/
+frontend/coreadmin/node_modules/

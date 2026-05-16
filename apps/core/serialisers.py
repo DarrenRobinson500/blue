@@ -56,11 +56,24 @@ class FunctionCurrentUserSerializer(serializers.ModelSerializer):
         return record.start_date if record else None
 
 
+class FunctionAssignmentHistorySerializer(serializers.ModelSerializer):
+    user_email = serializers.CharField(source='user.email', read_only=True)
+    assigned_by_email = serializers.SerializerMethodField()
+
+    class Meta:
+        model = UserFunctionHistory
+        fields = ('user_email', 'start_date', 'end_date', 'assigned_by_email', 'notes')
+
+    def get_assigned_by_email(self, obj):
+        return obj.assigned_by.email if obj.assigned_by else None
+
+
 class FunctionDetailSerializer(FunctionListSerializer):
     current_users = FunctionCurrentUserSerializer(many=True, read_only=True)
+    assignment_history = FunctionAssignmentHistorySerializer(many=True, read_only=True)
 
     class Meta(FunctionListSerializer.Meta):
-        fields = FunctionListSerializer.Meta.fields + ('current_users',)
+        fields = FunctionListSerializer.Meta.fields + ('current_users', 'assignment_history')
 
 
 class FunctionWriteSerializer(serializers.ModelSerializer):

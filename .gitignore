@@ -18,6 +18,7 @@ node_modules/
 dist/
 frontend/riskcore/dist/
 frontend/actuarialcore/dist/
+frontend/coreadmin/dist/
 
 # OS
 .DS_Store

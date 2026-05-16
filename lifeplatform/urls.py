@@ -31,4 +31,6 @@ urlpatterns = [
     re_path(r'^riskcore/.*$', _spa_view('riskcore')),
     path('actuarialcore/', _spa_view('actuarialcore')),
     re_path(r'^actuarialcore/.*$', _spa_view('actuarialcore')),
+    path('coreadmin/', _spa_view('coreadmin')),
+    re_path(r'^coreadmin/.*$', _spa_view('coreadmin')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
