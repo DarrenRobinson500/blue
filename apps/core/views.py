@@ -246,6 +246,8 @@ class AccessibleAppsView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        if request.user.is_superuser:
+            return Response([app for app, _ in FunctionAppAccess.APPS])
         if not request.user.function_id:
             return Response([])
         apps = list(
