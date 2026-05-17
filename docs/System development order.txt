@@ -1,0 +1,78 @@
+Risk
+ - obligations
+ - risks
+ - controls
+ - incidents
+ - FAR
+ - Obligations - initial population
+ - Obligations - ongoing update
+
+Product
+ - define product terms
+ - define product pricing
+
+Actuarial
+ - data load
+ - cash flow engine
+   - policies
+   - per unit values
+   - cashflows -> profit
+   - reserves
+ - assumption governance
+ - AASB 17 liability calculation 
+ - ledger load
+ - AOP
+ - Monthly AOP
+ - Monthly Capital
+ - Pricing 
+ - Embedded Value with monthly AOC
+ - Experience Investigation 
+ - scenario analysis 
+ - stress testing
+
+AdminCore
+ - product definition
+ - new policy
+ - pricing calculation
+ - the core policy record 
+ - premium scheduling and collection status 
+ - policy lifecycle events
+   - lapsed policy
+   - end of term
+ - document creation
+ - document storage with classification tagging
+
+Digital
+ - Web
+ - App
+ - AI chat
+
+Underwriting 
+ - application intake 
+ - document storage and classification
+ - the AI summarisation integration 
+ - the human workbench and decision recording 
+ - authority limit 
+ - reinsurance referral logic
+
+Claims
+ - FNOL and the claims record
+ - evidence tracking and document storage
+ - the AI extraction and recommendation layer 
+ - the assessor workbench and determination recording
+ - IP case management and review scheduling
+ - payment authorisation.
+
+Reinsurance
+ - treaty parameter storage
+ - monthly calculation against the shared policy tables
+ - bordereau generation
+ - recovery tracking against shared claims tables.
+
+EIL
+ - regulator feeds
+ - external feeds
+ - internal feeds
+ - reporting
+ - decisioning
+ - tracking

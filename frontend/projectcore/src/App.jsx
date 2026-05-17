@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, NavLink } from 'react-router-dom'
 import { getToken, getUser, clearAuth, apiFetch, AUTH_BASE } from './auth'
 import ProjectPage from './pages/ProjectPage'
+import ToDoPage from './pages/ToDoPage'
 
 function IconProject() {
   return (
@@ -9,6 +10,15 @@ function IconProject() {
       <rect x="3" y="4" width="18" height="3" rx="1" />
       <rect x="3" y="10" width="12" height="3" rx="1" />
       <rect x="3" y="16" width="8" height="3" rx="1" />
+    </svg>
+  )
+}
+
+function IconTodo() {
+  return (
+    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+      <path d="M9 11l3 3L22 4" />
+      <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
     </svg>
   )
 }
@@ -40,6 +50,9 @@ function AppLayout({ user, onLogout }) {
           <NavLink to="/projects" className={navClass}>
             <IconProject /> Projects
           </NavLink>
+          <NavLink to="/todo" className={navClass}>
+            <IconTodo /> To Do
+          </NavLink>
         </nav>
         <div className="p-4 border-t border-border">
           <a href={homeUrl()} className="flex items-center gap-1.5 text-xs text-muted hover:text-primary transition-colors mb-3">
@@ -59,6 +72,7 @@ function AppLayout({ user, onLogout }) {
       <main className="flex-1 overflow-auto">
         <Routes>
           <Route path="/projects" element={<ProjectPage />} />
+          <Route path="/todo" element={<ToDoPage />} />
           <Route path="*" element={<Navigate to="/projects" replace />} />
         </Routes>
       </main>

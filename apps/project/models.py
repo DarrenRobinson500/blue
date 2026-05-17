@@ -31,3 +31,20 @@ class Task(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.project.name})"
+
+
+class TodoItem(models.Model):
+    title = models.CharField(max_length=500)
+    completed = models.BooleanField(default=False)
+    parent = models.ForeignKey(
+        'self', null=True, blank=True, on_delete=models.CASCADE, related_name='children'
+    )
+    order = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'project_todo'
+        ordering = ['order', 'id']
+
+    def __str__(self):
+        return self.title

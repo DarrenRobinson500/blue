@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Project, Task
+from .models import Project, Task, TodoItem
 
 
 class ProjectSerializer(serializers.ModelSerializer):
@@ -16,3 +16,9 @@ class TaskSerializer(serializers.ModelSerializer):
             'start_date', 'end_date', 'order',
             'depends_on', 'completed', 'is_heading',
         ]
+
+
+class TodoItemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TodoItem
+        fields = ['id', 'title', 'completed', 'parent', 'order', 'created_at']

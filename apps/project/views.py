@@ -2,8 +2,8 @@ from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
-from .models import Project, Task
-from .serializers import ProjectSerializer, TaskSerializer
+from .models import Project, Task, TodoItem
+from .serializers import ProjectSerializer, TaskSerializer, TodoItemSerializer
 
 
 @api_view(['GET', 'POST'])
@@ -99,3 +99,30 @@ def task_bulk_update(request):
             end_date=item['end_date'],
         )
     return Response({'status': 'ok'})
+
+
+@api_view(['GET', 'POST'])
+def todo_list(request):
+    if request.method == 'GET':
+        return Response(TodoItemSerializer(TodoItem.objects.all(), many=True).data)
+    s = TodoItemSerializer(data=request.data)
+    if s.is_valid():
+        s.save()
+        return Response(s.data, status=status.HTTP_201_CREATED)
+    return Response(s.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['PATCH', 'DELETE'])
+def todo_detail(request, pk):
+    try:
+        todo = TodoItem.objects.get(pk=pk)
+    except TodoItem.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+    if request.method == 'PATCH':
+        s = TodoItemSerializer(todo, data=request.data, partial=True)
+        if s.is_valid():
+            s.save()
+            return Response(s.data)
+        return Response(s.errors, status=status.HTTP_400_BAD_REQUEST)
+    todo.delete()
+    return Response(status=status.HTTP_204_NO_CONTENT)
