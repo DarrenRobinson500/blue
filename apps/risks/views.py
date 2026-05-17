@@ -225,6 +225,13 @@ class RiskDetailView(APIView):
             risk.linked_obligations.set(obligations)
         return Response(RiskDetailSerializer(self._get(pk)).data)
 
+    def delete(self, request, pk):
+        obj = self._get(pk)
+        if not obj:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        obj.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
 
 class RiskActivateView(APIView):
     permission_classes = [IsAuthenticated]

@@ -1,14 +1,19 @@
 from rest_framework import serializers
 from django.contrib.auth import authenticate
-from .models import Function, User, UserFunctionHistory
+from .models import Function, User, UserFunctionHistory, ProvisionedUser, PlatformSettings
 
 
 class LoginSerializer(serializers.Serializer):
-    email = serializers.EmailField()
+    username = serializers.CharField()
     password = serializers.CharField(write_only=True)
 
     def validate(self, data):
-        user = authenticate(username=data['email'], password=data['password'])
+        username_input = data['username'].strip().lower()
+        try:
+            user_obj = User.objects.get(username__iexact=username_input)
+        except User.DoesNotExist:
+            raise serializers.ValidationError('Invalid credentials.')
+        user = authenticate(username=user_obj.email, password=data['password'])
         if not user:
             raise serializers.ValidationError('Invalid credentials.')
         if not user.is_active:
@@ -28,7 +33,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ('id', 'email', 'role', 'function')
+        fields = ('id', 'email', 'username', 'role', 'function')
 
 
 # ── Function serialisers ──────────────────────────────────────────────────────
@@ -116,13 +121,35 @@ class UserFunctionHistorySerializer(serializers.ModelSerializer):
         return obj.assigned_by.email if obj.assigned_by else None
 
 
+class PlatformSettingsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PlatformSettings
+        fields = ('email_domain',)
+
+
+class ProvisionedUserSerializer(serializers.ModelSerializer):
+    function = FunctionBriefSerializer(read_only=True)
+    function_id = serializers.PrimaryKeyRelatedField(
+        queryset=Function.objects.filter(is_active=True),
+        source='function',
+        write_only=True,
+    )
+
+    class Meta:
+        model = ProvisionedUser
+        fields = ('id', 'username', 'function', 'function_id', 'created_at')
+
+    def validate_username(self, value):
+        return value.strip().lower()
+
+
 class UserListSerializer(serializers.ModelSerializer):
     function = FunctionBriefSerializer(read_only=True)
     function_assigned_since = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ('id', 'email', 'role', 'is_active', 'function', 'function_assigned_since')
+        fields = ('id', 'email', 'username', 'role', 'is_active', 'function', 'function_assigned_since')
 
     def get_function_assigned_since(self, user):
         if not user.function_id:

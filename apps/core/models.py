@@ -7,6 +7,8 @@ class UserManager(BaseUserManager):
         if not email:
             raise ValueError('Email is required')
         email = self.normalize_email(email)
+        if not extra_fields.get('username'):
+            extra_fields['username'] = email.split('@')[0].lower()
         user = self.model(email=email, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
@@ -50,6 +52,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         ADMIN = 'admin', 'Admin'
 
     email = models.EmailField(unique=True)
+    username = models.CharField(max_length=150, unique=True)
     role = models.CharField(max_length=20, choices=Role.choices, default=Role.ADMIN)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
@@ -75,8 +78,55 @@ class User(AbstractBaseUser, PermissionsMixin):
         return self.email
 
 
+class PlatformSettings(models.Model):
+    email_domain = models.CharField(max_length=255, default='lifeplatform.internal')
+
+    class Meta:
+        db_table = 'core_platform_settings'
+
+    @classmethod
+    def get(cls):
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj
+
+
+class ProvisionedUser(models.Model):
+    username = models.CharField(max_length=150, unique=True)
+    function = models.ForeignKey(
+        'core.Function',
+        on_delete=models.PROTECT,
+        related_name='provisioned_users',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'core_provisioned_user'
+        ordering = ['username']
+
+    def __str__(self):
+        return self.username
+
+
+class FunctionAppAccess(models.Model):
+    APPS = [
+        ('risk', 'Risk'),
+        ('project', 'Project'),
+        ('actuarial', 'Actuarial'),
+        ('admin', 'Admin'),
+    ]
+    function = models.ForeignKey(Function, on_delete=models.CASCADE, related_name='app_access')
+    app = models.CharField(max_length=50, choices=APPS)
+
+    class Meta:
+        db_table = 'core_function_app_access'
+        unique_together = ('function', 'app')
+
+    def __str__(self):
+        return f'{self.function.code} → {self.app}'
+
+
 class UserFunctionHistory(models.Model):
-    user = models.ForeignKey(User, on_delete=models.PROTECT, related_name='function_history')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='function_history')
     function = models.ForeignKey(Function, on_delete=models.PROTECT, related_name='assignment_history')
     start_date = models.DateField()
     end_date = models.DateField(null=True, blank=True)

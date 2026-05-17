@@ -29,7 +29,7 @@ function HistoryEntry({ entry }) {
   )
 }
 
-export default function ObligationPanel({ obligation: initial, sources, allControls, onClose, onUpdated }) {
+export default function ObligationPanel({ obligation: initial, sources, allControls, onClose, onUpdated, onDeleted }) {
   const [obligation, setObligation] = useState(initial)
   const [history, setHistory] = useState(null)
   const [historyOpen, setHistoryOpen] = useState(false)
@@ -38,6 +38,15 @@ export default function ObligationPanel({ obligation: initial, sources, allContr
   const [linkSearch, setLinkSearch] = useState('')
   const [linkOpen, setLinkOpen] = useState(false)
   const { request, loading } = useApi()
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+
+  const deleteObligation = async () => {
+    setDeleting(true)
+    const res = await apiFetch(`/api/risk/obligations/${obligation.id}/`, { method: 'DELETE' })
+    if (res?.ok || res?.status === 204) onDeleted?.(obligation.id)
+    setDeleting(false)
+  }
 
   useEffect(() => { setObligation(initial); setEditing(false) }, [initial])
 
@@ -121,7 +130,35 @@ export default function ObligationPanel({ obligation: initial, sources, allContr
           <p className="text-xs text-muted mt-1">{obligation.source_name}</p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          {!editing && <button onClick={startEdit} className="px-3 py-1.5 text-xs border border-gray-200 rounded hover:border-gray-400 text-primary">Edit</button>}
+          {!editing && (
+            confirmDelete ? (
+              <>
+                <button
+                  onClick={deleteObligation}
+                  disabled={deleting}
+                  className="text-xs bg-red-600 text-white rounded px-2 py-1 hover:bg-red-700 disabled:opacity-50 transition-colors"
+                >
+                  {deleting ? 'Deleting…' : 'Delete'}
+                </button>
+                <button
+                  onClick={() => setConfirmDelete(false)}
+                  className="text-xs text-muted hover:text-primary border border-gray-200 rounded px-2 py-1 transition-colors"
+                >
+                  Cancel
+                </button>
+              </>
+            ) : (
+              <>
+                <button onClick={startEdit} className="px-3 py-1.5 text-xs border border-gray-200 rounded hover:border-gray-400 text-primary transition-colors">Edit</button>
+                <button
+                  onClick={() => setConfirmDelete(true)}
+                  className="px-3 py-1.5 text-xs border border-gray-200 rounded hover:border-red-300 hover:text-red-600 text-muted transition-colors"
+                >
+                  Delete
+                </button>
+              </>
+            )
+          )}
           <button onClick={onClose} className="text-muted hover:text-primary text-xl leading-none">&times;</button>
         </div>
       </div>

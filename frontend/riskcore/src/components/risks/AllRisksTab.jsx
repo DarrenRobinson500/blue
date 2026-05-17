@@ -9,7 +9,7 @@ const SORT_OPTIONS = [
   { value: 'assessed_at', label: 'Assessment date' },
 ]
 
-export default function AllRisksTab({ risks, categories, functions, onView, onAssess, onActivate }) {
+export default function AllRisksTab({ risks, categories, functions, onView, onActivate }) {
   const [search, setSearch] = useState('')
   const [filterCategory, setFilterCategory] = useState('')
   const [filterOwner, setFilterOwner] = useState('')
@@ -157,7 +157,7 @@ export default function AllRisksTab({ risks, categories, functions, onView, onAs
         : (
           <div className="space-y-3">
             {filtered.map(r => (
-              <RiskCard key={r.id} risk={r} onView={onView} onAssess={onAssess} onActivate={onActivate} />
+              <RiskCard key={r.id} risk={r} onView={onView} onActivate={onActivate} />
             ))}
           </div>
         )}

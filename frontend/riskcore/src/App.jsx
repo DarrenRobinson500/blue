@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, NavLink } from 'react-router-dom'
-import { getToken, getUser, clearAuth, apiFetch } from './auth'
-import LoginPage from './pages/LoginPage'
+import { getToken, getUser, clearAuth, apiFetch, AUTH_BASE } from './auth'
 import ObligationsPage from './pages/ObligationsPage'
 import RiskRegisterPage from './pages/RiskRegisterPage'
 
@@ -25,6 +24,16 @@ function IconRisk() {
   )
 }
 
+function homeUrl() {
+  const base = AUTH_BASE
+  const token = getToken()
+  const userRaw = localStorage.getItem('lp_user')
+  if (token && userRaw) {
+    return base + `?lp_token=${encodeURIComponent(token)}&lp_user=${encodeURIComponent(btoa(userRaw))}`
+  }
+  return base
+}
+
 const navClass = ({ isActive }) =>
   `flex items-center gap-2.5 px-3 py-2 rounded text-sm font-medium transition-colors ${
     isActive ? 'bg-stone-700 text-white' : 'text-muted hover:text-primary hover:bg-gray-100'
@@ -43,11 +52,19 @@ function AppLayout({ user, onLogout }) {
             <IconObligations /> Obligations
           </NavLink>
           <NavLink to="/register" className={navClass}>
-            <IconRisk /> Risk Register
+            <IconRisk /> Risks
           </NavLink>
         </nav>
         <div className="p-4 border-t border-border">
-          <p className="text-xs text-muted truncate mb-2">{user.email}</p>
+          <a href={homeUrl()} className="flex items-center gap-1.5 text-xs text-muted hover:text-primary transition-colors mb-3">
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path d="M3 12l9-9 9 9M5 10v9a1 1 0 0 0 1 1h4v-5h4v5h4a1 1 0 0 0 1-1v-9" />
+            </svg>
+            All apps
+          </a>
+          <p className="text-xs text-muted truncate mb-2">
+            {user.username || user.email}{user.function ? ` (${user.function.name})` : ''}
+          </p>
           <button onClick={onLogout} className="text-xs text-muted hover:text-primary transition-colors">
             Sign out
           </button>
@@ -57,7 +74,7 @@ function AppLayout({ user, onLogout }) {
         <Routes>
           <Route path="/obligations" element={<ObligationsPage />} />
           <Route path="/register" element={<RiskRegisterPage />} />
-          <Route path="*" element={<Navigate to="/obligations" replace />} />
+          <Route path="*" element={<Navigate to="/register" replace />} />
         </Routes>
       </main>
     </div>
@@ -70,10 +87,13 @@ export default function App() {
   const handleLogout = async () => {
     await apiFetch('/api/auth/logout/', { method: 'POST' })
     clearAuth()
-    setUser(null)
+    window.location.href = AUTH_BASE + '?logout=true'
   }
 
-  if (!user) return <LoginPage onLogin={setUser} />
+  if (!user) {
+    window.location.href = AUTH_BASE + '?next=' + encodeURIComponent(window.location.href)
+    return null
+  }
 
   return (
     <BrowserRouter basename="/risk">

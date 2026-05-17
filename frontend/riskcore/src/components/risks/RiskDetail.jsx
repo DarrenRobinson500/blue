@@ -158,7 +158,7 @@ const SOURCE_TYPES = ['regulatory', 'operational', 'strategic', 'financial', 'em
 const VELOCITIES = ['high', 'medium', 'low']
 const STATUSES = ['draft', 'active', 'closed']
 
-export default function RiskDetail({ risk: initialRisk, matrixCells, users, categories = [], onClose, onRiskUpdated }) {
+export default function RiskDetail({ risk: initialRisk, matrixCells, users, categories = [], onClose, onRiskUpdated, onDeleted }) {
   const [risk, setRisk] = useState(initialRisk)
   const [fullRisk, setFullRisk] = useState(null)
   const [assessHistory, setAssessHistory] = useState([])
@@ -171,6 +171,8 @@ export default function RiskDetail({ risk: initialRisk, matrixCells, users, cate
   const [notesValue, setNotesValue] = useState(risk.notes || '')
   const [savingNotes, setSavingNotes] = useState(false)
   const [showEditRisk, setShowEditRisk] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const [editForm, setEditForm] = useState({})
   const [savingEdit, setSavingEdit] = useState(false)
   const [editError, setEditError] = useState('')
@@ -245,6 +247,15 @@ export default function RiskDetail({ risk: initialRisk, matrixCells, users, cate
     }
     setEditingNotes(false)
     setSavingNotes(false)
+  }
+
+  const deleteRisk = async () => {
+    setDeleting(true)
+    const res = await apiFetch(`/api/risks/${r.id}/`, { method: 'DELETE' })
+    if (res?.ok || res?.status === 204) {
+      onDeleted?.(r.id)
+    }
+    setDeleting(false)
   }
 
   const openEdit = async () => {
@@ -346,12 +357,40 @@ export default function RiskDetail({ risk: initialRisk, matrixCells, users, cate
             )}
           </div>
           {!showEditRisk && (
-            <button
-              onClick={openEdit}
-              className="shrink-0 text-xs text-muted hover:text-primary border border-gray-200 rounded px-2 py-1 transition-colors"
-            >
-              Edit
-            </button>
+            <div className="flex items-center gap-2 shrink-0">
+              {confirmDelete ? (
+                <>
+                  <button
+                    onClick={deleteRisk}
+                    disabled={deleting}
+                    className="text-xs bg-red-600 text-white rounded px-2 py-1 hover:bg-red-700 disabled:opacity-50 transition-colors"
+                  >
+                    {deleting ? 'Deleting…' : 'Delete'}
+                  </button>
+                  <button
+                    onClick={() => setConfirmDelete(false)}
+                    className="text-xs text-muted hover:text-primary border border-gray-200 rounded px-2 py-1 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={openEdit}
+                    className="text-xs text-muted hover:text-primary border border-gray-200 rounded px-2 py-1 transition-colors"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => setConfirmDelete(true)}
+                    className="text-xs text-muted hover:text-red-600 border border-gray-200 hover:border-red-300 rounded px-2 py-1 transition-colors"
+                  >
+                    Delete
+                  </button>
+                </>
+              )}
+            </div>
           )}
         </div>
         {!showEditRisk && linkedObligations.length > 0 && (

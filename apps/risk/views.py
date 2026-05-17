@@ -153,6 +153,13 @@ class ObligationDetailView(APIView):
             return Response(status=status.HTTP_404_NOT_FOUND)
         return Response(ObligationDetailSerializer(obj).data)
 
+    def delete(self, request, pk):
+        obj = self._get(pk)
+        if not obj:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        obj.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
     def patch(self, request, pk):
         obj = self._get(pk)
         if not obj:

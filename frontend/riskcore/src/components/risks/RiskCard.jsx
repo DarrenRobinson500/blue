@@ -1,6 +1,6 @@
 import { RatingPill, StatusPill, VelocityPill, AppetiteLabel, StaleWarning, RiskTypePill, label } from './RiskBadge'
 
-export default function RiskCard({ risk, onView, onAssess, onActivate }) {
+export default function RiskCard({ risk, onView, onActivate }) {
   const assessment = risk.current_assessment
   const overdueCount = risk.overdue_treatment_count || 0
   const treatmentCount = risk.treatment_count || 0
@@ -28,14 +28,6 @@ export default function RiskCard({ risk, onView, onAssess, onActivate }) {
           </div>
         </div>
         <div className="flex gap-2 shrink-0">
-          {risk.status === 'active' && (
-            <button
-              onClick={e => { e.stopPropagation(); onAssess(risk) }}
-              className="px-3 py-1.5 text-xs bg-slate-700 text-white rounded hover:bg-slate-800"
-            >
-              Assess
-            </button>
-          )}
           {risk.status === 'draft' && assessment && (
             <button
               onClick={e => { e.stopPropagation(); onActivate(risk) }}

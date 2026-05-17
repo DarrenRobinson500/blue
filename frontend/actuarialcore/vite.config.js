@@ -1,8 +1,8 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-export default defineConfig({
-  base: '/static/actuarialcore/',
+export default defineConfig(({ command }) => ({
+  base: command === 'serve' ? '/actuarialcore/' : '/static/actuarialcore/',
   plugins: [react()],
   build: {
     outDir: '../../staticfiles/actuarialcore',
@@ -12,6 +12,7 @@ export default defineConfig({
     proxy: {
       '/api': { target: 'http://127.0.0.1:8000', changeOrigin: true },
       '/media': { target: 'http://127.0.0.1:8000', changeOrigin: true },
+      '/auth': { target: 'http://127.0.0.1:5177', changeOrigin: true },
     },
   },
-})
+}))

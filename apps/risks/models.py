@@ -135,7 +135,7 @@ class RiskAssessment(models.Model):
     confidence = models.CharField(max_length=10, choices=Confidence.choices)
     rationale = models.TextField()
     assessed_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='assessments_made'
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name='assessments_made'
     )
     assessed_at = models.DateTimeField(auto_now_add=True)
     is_current = models.BooleanField(default=True)
@@ -228,7 +228,7 @@ class RiskHistory(models.Model):
         MANUAL = 'manual', 'Manual'
         SYSTEM_TRIGGERED = 'system_triggered', 'System Triggered'
 
-    risk = models.ForeignKey(Risk, on_delete=models.PROTECT, related_name='history')
+    risk = models.ForeignKey(Risk, on_delete=models.CASCADE, related_name='history')
     snapshot = models.JSONField()
     changed_at = models.DateTimeField(auto_now_add=True)
     changed_by = models.ForeignKey(

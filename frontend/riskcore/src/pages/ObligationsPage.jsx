@@ -254,6 +254,7 @@ export default function ObligationsPage() {
           allControls={controls || []}
           onClose={() => setSelectedObligation(null)}
           onUpdated={handleObligationUpdated}
+          onDeleted={() => { setSelectedObligation(null); reload() }}
         />
       )}
 

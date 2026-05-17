@@ -36,4 +36,6 @@ urlpatterns = [
     re_path(r'^coreadmin/.*$', _spa_view('coreadmin')),
     path('project/', _spa_view('project')),
     re_path(r'^project/.*$', _spa_view('project')),
+    path('auth/', _spa_view('auth')),
+    re_path(r'^auth/.*$', _spa_view('auth')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

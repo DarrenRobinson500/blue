@@ -75,10 +75,6 @@ export default function RiskRegisterPage() {
     }
   }
 
-  const handleAssess = (risk) => {
-    setSelectedRisk(risk)
-  }
-
   const handleMatrixSaved = async (newCells) => {
     const data = await updateMatrix(newCells)
     await loadAll()
@@ -172,7 +168,6 @@ export default function RiskRegisterPage() {
           categories={categories}
           functions={functions}
           onView={setSelectedRisk}
-          onAssess={handleAssess}
           onActivate={handleActivate}
         />
       )}
@@ -213,6 +208,7 @@ export default function RiskRegisterPage() {
           categories={categories}
           onClose={() => { setSelectedRisk(null); loadStats() }}
           onRiskUpdated={handleRiskUpdated}
+          onDeleted={() => { setSelectedRisk(null); loadAll(); loadStats() }}
         />
       )}
 
