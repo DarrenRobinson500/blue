@@ -21,7 +21,6 @@ export default function RiskRegisterPage() {
   const [tab, setTab] = useState('all')
   const [selectedRisk, setSelectedRisk] = useState(null)
   const [showAddRisk, setShowAddRisk] = useState(false)
-  const [showMatrixEditor, setShowMatrixEditor] = useState(false)
 
   const loadStats = useCallback(async () => {
     const res = await apiFetch('/api/risk-stats/')
@@ -106,20 +105,12 @@ export default function RiskRegisterPage() {
       {/* Page header */}
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-semibold text-primary">Risk Register</h1>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setShowAddRisk(true)}
-            className="px-3 py-1.5 text-xs bg-stone-700 text-white rounded hover:bg-stone-800 transition-colors"
-          >
-            + Add risk
-          </button>
-          <button
-            onClick={() => setShowMatrixEditor(true)}
-            className="px-3 py-1.5 text-xs border border-gray-300 text-primary rounded hover:border-gray-500 transition-colors"
-          >
-            Edit matrix
-          </button>
-        </div>
+        <button
+          onClick={() => setShowAddRisk(true)}
+          className="px-3 py-1.5 text-xs bg-stone-700 text-white rounded hover:bg-stone-800 transition-colors"
+        >
+          + Add risk
+        </button>
       </div>
       {/* Stats row */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">

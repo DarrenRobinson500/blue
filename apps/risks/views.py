@@ -85,6 +85,12 @@ class RiskCategoryListView(APIView):
         qs = RiskCategory.objects.all()
         return Response(RiskCategorySerializer(qs, many=True).data)
 
+    def post(self, request):
+        ser = RiskCategorySerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        obj = ser.save(updated_by=request.user)
+        return Response(RiskCategorySerializer(obj).data, status=status.HTTP_201_CREATED)
+
 
 class RiskCategoryDetailView(APIView):
     permission_classes = [IsAuthenticated]
@@ -94,12 +100,25 @@ class RiskCategoryDetailView(APIView):
             obj = RiskCategory.objects.get(pk=pk)
         except RiskCategory.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
-        allowed = {'appetite', 'appetite_rationale', 'description'}
+        allowed = {'name', 'appetite', 'appetite_rationale', 'description'}
         data = {k: v for k, v in request.data.items() if k in allowed}
         ser = RiskCategorySerializer(obj, data=data, partial=True)
         ser.is_valid(raise_exception=True)
         obj = ser.save(updated_by=request.user)
         return Response(RiskCategorySerializer(obj).data)
+
+    def delete(self, request, pk):
+        try:
+            obj = RiskCategory.objects.get(pk=pk)
+        except RiskCategory.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        if obj.risks.exists():
+            return Response(
+                {'detail': 'This category cannot be deleted because it has risks assigned to it.'},
+                status=status.HTTP_409_CONFLICT,
+            )
+        obj.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class MatrixView(APIView):

@@ -3,7 +3,7 @@ import Panel from '../Panel'
 import { apiFetch } from '../../auth'
 import {
   RatingPill, StatusPill, VelocityPill, AppetiteLabel, StaleWarning,
-  TreatmentStatusPill, EffectivenessPill, RiskTypePill, label,
+  TreatmentStatusPill, EffectivenessPill, RiskTypePill,
 } from './RiskBadge'
 import AddTreatmentModal from './AddTreatmentModal'
 import EditTreatmentModal from './EditTreatmentModal'
@@ -154,7 +154,6 @@ function AssessmentForm({ risk, matrixCells, onSaved, onCancel }) {
   )
 }
 
-const SOURCE_TYPES = ['regulatory', 'operational', 'strategic', 'financial', 'emerging']
 const VELOCITIES = ['high', 'medium', 'low']
 const STATUSES = ['draft', 'active', 'closed']
 
@@ -263,7 +262,6 @@ export default function RiskDetail({ risk: initialRisk, matrixCells, users, cate
       title: r.title || '',
       description: r.description || '',
       category: r.category || '',
-      source_type: r.source_type || 'operational',
       owner: r.owner || '',
       velocity: r.velocity || 'medium',
       status: r.status || 'draft',
@@ -304,7 +302,6 @@ export default function RiskDetail({ risk: initialRisk, matrixCells, users, cate
         title: editForm.title.trim(),
         description: editForm.description.trim(),
         category: editForm.category ? Number(editForm.category) : null,
-        source_type: editForm.source_type,
         owner: editForm.owner ? Number(editForm.owner) : null,
         velocity: editForm.velocity,
         status: editForm.status,
@@ -348,8 +345,6 @@ export default function RiskDetail({ risk: initialRisk, matrixCells, users, cate
             {!showEditRisk && (
               <div className="flex flex-wrap gap-3 mt-1 text-xs text-muted">
                 <span>{r.category_name}</span>
-                <span>·</span>
-                <span>{label(r.source_type)}</span>
                 <span>·</span>
                 <span>{r.owner_name || 'Unassigned'}</span>
                 {r.project_name && <><span>·</span><span className="text-violet-600">↳ {r.project_name}</span></>}
@@ -413,20 +408,12 @@ export default function RiskDetail({ risk: initialRisk, matrixCells, users, cate
             <label className={labelCls}>Description *</label>
             <textarea className={inputCls} rows={4} value={editForm.description} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))} />
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className={labelCls}>Category</label>
-              <select className={inputCls} value={editForm.category} onChange={e => setEditForm(f => ({ ...f, category: e.target.value }))}>
-                <option value="">— none —</option>
-                {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className={labelCls}>Source type</label>
-              <select className={inputCls} value={editForm.source_type} onChange={e => setEditForm(f => ({ ...f, source_type: e.target.value }))}>
-                {SOURCE_TYPES.map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
-              </select>
-            </div>
+          <div>
+            <label className={labelCls}>Category</label>
+            <select className={inputCls} value={editForm.category} onChange={e => setEditForm(f => ({ ...f, category: e.target.value }))}>
+              <option value="">— none —</option>
+              {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>

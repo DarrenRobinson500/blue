@@ -17,7 +17,6 @@ export default function RiskCard({ risk, onView, onActivate }) {
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-sm font-semibold text-primary">{risk.title}</span>
             <span className="text-xs text-muted bg-gray-100 rounded-full px-2 py-0.5">{risk.category_name}</span>
-            <span className="text-xs text-muted">{label(risk.source_type)}</span>
           </div>
           <div className="flex flex-wrap items-center gap-2 mt-1">
             <StatusPill value={risk.status} />

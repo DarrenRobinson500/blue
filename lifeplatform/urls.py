@@ -4,6 +4,7 @@ from django.urls import path, include, re_path
 from django.conf import settings
 from django.conf.urls.static import static
 from django.http import JsonResponse, FileResponse, Http404
+from django.views.generic import RedirectView
 
 
 def health(request):
@@ -20,6 +21,7 @@ def _spa_view(spa_name):
 
 
 urlpatterns = [
+    path('', RedirectView.as_view(url='/auth/', permanent=False)),
     path('admin/', admin.site.urls),
     path('health/', health),
     path('api/auth/', include('apps.core.urls')),

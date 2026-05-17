@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import Modal from '../Modal'
 import { apiFetch } from '../../auth'
 
-const SOURCE_TYPES = ['regulatory', 'operational', 'strategic', 'financial', 'emerging']
 const VELOCITIES = ['high', 'medium', 'low']
 
 export default function AddRiskModal({ categories, onClose, onCreated }) {
@@ -11,7 +10,7 @@ export default function AddRiskModal({ categories, onClose, onCreated }) {
   const [projects, setProjects] = useState([])
   const [form, setForm] = useState({
     title: '', description: '', category: categories[0]?.id || '',
-    source_type: 'operational', owner: '', velocity: 'medium',
+    owner: '', velocity: 'medium',
     risk_type: 'bau', project: '',
     linked_obligations: [], notes: '',
   })
@@ -33,12 +32,8 @@ export default function AddRiskModal({ categories, onClose, onCreated }) {
   }))
 
   const submit = async () => {
-    if (!form.title || !form.description || !form.category || !form.source_type) {
-      setError('Title, description, category, and source type are required.')
-      return
-    }
-    if (form.source_type === 'regulatory' && form.linked_obligations.length === 0) {
-      setError('Regulatory risks must be linked to at least one obligation.')
+    if (!form.title || !form.description || !form.category) {
+      setError('Title, description, and category are required.')
       return
     }
     if (['execution', 'delivered'].includes(form.risk_type) && !form.project) {
@@ -86,19 +81,11 @@ export default function AddRiskModal({ categories, onClose, onCreated }) {
           <label className={labelCls}>Description *</label>
           <textarea className={inputCls} rows={3} value={form.description} onChange={e => set('description', e.target.value)} />
         </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className={labelCls}>Category *</label>
-            <select className={inputCls} value={form.category} onChange={e => set('category', e.target.value)}>
-              {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className={labelCls}>Source type *</label>
-            <select className={inputCls} value={form.source_type} onChange={e => set('source_type', e.target.value)}>
-              {SOURCE_TYPES.map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
-            </select>
-          </div>
+        <div>
+          <label className={labelCls}>Category *</label>
+          <select className={inputCls} value={form.category} onChange={e => set('category', e.target.value)}>
+            {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
@@ -135,11 +122,7 @@ export default function AddRiskModal({ categories, onClose, onCreated }) {
           </div>
         )}
         <div>
-          <label className={labelCls}>
-            Linked obligations
-            {form.source_type === 'regulatory' && <span className="text-red-500 ml-1">*</span>}
-            <span className="text-gray-400 font-normal ml-1">(required for regulatory risks)</span>
-          </label>
+          <label className={labelCls}>Linked obligations</label>
           <div className="max-h-40 overflow-y-auto border border-gray-200 rounded p-2 space-y-1">
             {obligations.length === 0 && <p className="text-xs text-muted italic">Loading obligations…</p>}
             {obligations.map(o => (

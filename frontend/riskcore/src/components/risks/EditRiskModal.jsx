@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import Modal from '../Modal'
 import { apiFetch } from '../../auth'
 
-const SOURCE_TYPES = ['regulatory', 'operational', 'strategic', 'financial', 'emerging']
 const VELOCITIES = ['high', 'medium', 'low']
 
 export default function EditRiskModal({ risk, categories, users, onClose, onSaved }) {
@@ -11,7 +10,6 @@ export default function EditRiskModal({ risk, categories, users, onClose, onSave
     title: risk.title,
     description: risk.description,
     category: risk.category,
-    source_type: risk.source_type,
     owner: risk.owner || '',
     velocity: risk.velocity,
     linked_obligations: (risk.linked_obligations || []).map(o => o.id ?? o),
@@ -69,19 +67,11 @@ export default function EditRiskModal({ risk, categories, users, onClose, onSave
           <label className={labelCls}>Description</label>
           <textarea className={inputCls} rows={3} value={form.description} onChange={e => set('description', e.target.value)} />
         </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className={labelCls}>Category</label>
-            <select className={inputCls} value={form.category} onChange={e => set('category', e.target.value)}>
-              {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className={labelCls}>Source type</label>
-            <select className={inputCls} value={form.source_type} onChange={e => set('source_type', e.target.value)}>
-              {SOURCE_TYPES.map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
-            </select>
-          </div>
+        <div>
+          <label className={labelCls}>Category</label>
+          <select className={inputCls} value={form.category} onChange={e => set('category', e.target.value)}>
+            {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
